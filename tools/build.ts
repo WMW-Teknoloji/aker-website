@@ -535,7 +535,7 @@ function contactInfoBlock(): string {
   ]
     .map(
       ([label, href, d]) =>
-        `            <a class="social-icon-btn" href="${href}" target="_blank" rel="noopener" aria-label="${label}"><svg viewBox="0 0 24 24" class="social-svg" aria-hidden="true"><path fill="currentColor" d="${d}"/></svg></a>`
+        `            <a class="contact-social-link" href="${href}" target="_blank" rel="noopener" aria-label="${label}"><svg viewBox="0 0 24 24" class="contact-social-svg" aria-hidden="true"><path d="${d}"/></svg></a>`
     )
     .join('\n');
 
@@ -555,11 +555,7 @@ ${locations}
             <div class="quick-detail-label">E-Posta</div>
             <a class="quick-detail-value" href="mailto:${SITE.email}">${SITE.email}</a>
           </div>
-          <div class="quick-detail">
-            <div class="quick-detail-label">WhatsApp</div>
-            <a class="quick-detail-value" href="https://wa.me/${SITE.whatsapp}" target="_blank" rel="noopener">Mesaj gönderin</a>
-          </div>
-          <div class="social-icons">
+          <div class="contact-social">
 ${socials}
           </div>
         </div>
