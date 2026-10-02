@@ -25,12 +25,40 @@
 
   // src/script.ts
   document.addEventListener("DOMContentLoaded", () => {
+    initMobileMenu();
     initHeroSwiper();
     initClientsSwiper();
     initCarousels();
     initContactForm();
     initNewsletterForm();
   });
+  function initMobileMenu() {
+    const navbar = qs(".navbar");
+    const toggle = qs(".navbar-toggle");
+    const menu = byId("navbar-menu");
+    if (!navbar || !toggle || !menu) return;
+    const setOpen = (open) => {
+      navbar.classList.toggle("menu-acik", open);
+      toggle.setAttribute("aria-expanded", String(open));
+      toggle.setAttribute("aria-label", open ? "Menüyü kapat" : "Menüyü aç");
+    };
+    toggle.addEventListener("click", () => setOpen(!navbar.classList.contains("menu-acik")));
+    menu.addEventListener("click", (e) => {
+      if (e.target.closest("a")) setOpen(false);
+    });
+    document.addEventListener("click", (e) => {
+      if (navbar.classList.contains("menu-acik") && !navbar.contains(e.target)) setOpen(false);
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && navbar.classList.contains("menu-acik")) {
+        setOpen(false);
+        toggle.focus();
+      }
+    });
+    window.matchMedia("(min-width: 1200px)").addEventListener("change", (e) => {
+      if (e.matches) setOpen(false);
+    });
+  }
   function initHeroSwiper() {
     const el = qs(".hero-swiper .swiper");
     if (!el || !window.Swiper) return;
@@ -68,9 +96,13 @@
     const prev = qs(".nav-prev", carousel);
     const next = qs(".nav-next", carousel);
     if (!grid || !prev || !next) return;
-    const amount = 320;
-    prev.addEventListener("click", () => grid.scrollBy({ left: -amount, behavior: "smooth" }));
-    next.addEventListener("click", () => grid.scrollBy({ left: amount, behavior: "smooth" }));
+    const amount = () => {
+      const first = grid.firstElementChild;
+      if (!first) return 320;
+      return first.getBoundingClientRect().width + (parseFloat(getComputedStyle(grid).columnGap) || 0);
+    };
+    prev.addEventListener("click", () => grid.scrollBy({ left: -amount(), behavior: "smooth" }));
+    next.addEventListener("click", () => grid.scrollBy({ left: amount(), behavior: "smooth" }));
   }
   function isPdf(file) {
     return file.type === "application/pdf" || /\.pdf$/i.test(file.name);

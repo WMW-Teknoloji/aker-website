@@ -9,12 +9,49 @@
 import { byId, isValidEmail, qs, qsa, showAlert } from './dom.ts';
 
 document.addEventListener('DOMContentLoaded', () => {
+  initMobileMenu();
   initHeroSwiper();
   initClientsSwiper();
   initCarousels();
   initContactForm();
   initNewsletterForm();
 });
+
+// ---------------------------------------------------------
+// Mobil menü (hamburger)
+// ---------------------------------------------------------
+// Görünürlük CSS'te (.navbar.menu-acik); burada yalnızca sınıf ve
+// aria-expanded değiştirilir. Bağlantıya tıklayınca, menü dışına
+// tıklayınca, Esc ile ve geniş ekrana dönünce menü kapanır.
+function initMobileMenu(): void {
+  const navbar = qs<HTMLElement>('.navbar');
+  const toggle = qs<HTMLButtonElement>('.navbar-toggle');
+  const menu = byId('navbar-menu');
+  if (!navbar || !toggle || !menu) return;
+
+  const setOpen = (open: boolean): void => {
+    navbar.classList.toggle('menu-acik', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', open ? 'Menüyü kapat' : 'Menüyü aç');
+  };
+
+  toggle.addEventListener('click', () => setOpen(!navbar.classList.contains('menu-acik')));
+  menu.addEventListener('click', (e) => {
+    if ((e.target as Element).closest('a')) setOpen(false);
+  });
+  document.addEventListener('click', (e) => {
+    if (navbar.classList.contains('menu-acik') && !navbar.contains(e.target as Node)) setOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && navbar.classList.contains('menu-acik')) {
+      setOpen(false);
+      toggle.focus();
+    }
+  });
+  window.matchMedia('(min-width: 1200px)').addEventListener('change', (e) => {
+    if (e.matches) setOpen(false);
+  });
+}
 
 // ---------------------------------------------------------
 // Kaydırıcılar (Swiper)
@@ -65,9 +102,14 @@ function setupArrowScroll(carousel: HTMLElement): void {
   const next = qs<HTMLButtonElement>('.nav-next', carousel);
   if (!grid || !prev || !next) return;
 
-  const amount = 320;
-  prev.addEventListener('click', () => grid.scrollBy({ left: -amount, behavior: 'smooth' }));
-  next.addEventListener('click', () => grid.scrollBy({ left: amount, behavior: 'smooth' }));
+  // Her tıklama bir kart kaydırır (kart genişliği ekrana göre değişiyor).
+  const amount = (): number => {
+    const first = grid.firstElementChild;
+    if (!first) return 320;
+    return first.getBoundingClientRect().width + (parseFloat(getComputedStyle(grid).columnGap) || 0);
+  };
+  prev.addEventListener('click', () => grid.scrollBy({ left: -amount(), behavior: 'smooth' }));
+  next.addEventListener('click', () => grid.scrollBy({ left: amount(), behavior: 'smooth' }));
 }
 
 // ---------------------------------------------------------

@@ -59,7 +59,7 @@
 /* --- Ana sayfa: hizmet kutuları artık bağlantı --- */
 .services-grid {
   list-style: none;
-  margin: 0;
+  margin: 0 auto; /* liste sıfırlaması; style.css'teki ortalamayı ezmesin */
   padding: 0;
 }
 

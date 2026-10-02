@@ -12,6 +12,7 @@
 // Kullanım: node tools/build.ts   (veya: npm run pages)
 // =========================================================
 
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,6 +43,16 @@ const SIZES = JSON.parse(readFileSync(path.join(ROOT, 'tools', 'image-sizes.json
   string,
   ImageSize
 >;
+
+/**
+ * CSS/JS adresine içerik özeti ekler (`/css/style.css?v=1a2b3c4d`).
+ * _headers bu dosyaları bir gün önbelleğe aldırıyor; dosya değişince
+ * adres de değiştiği için tarayıcı eski sürümde kalmaz.
+ */
+function assetUrl(rel: string): string {
+  const hash = createHash('sha256').update(readFileSync(path.join(ROOT, rel))).digest('hex').slice(0, 8);
+  return `/${rel}?v=${hash}`;
+}
 
 const BRANCH_BY_ID: Record<string, Branch> = Object.fromEntries(BRANCHES.map((b) => [b.id, b]));
 
@@ -254,8 +265,8 @@ function headBlock(page: PageSpec): string {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Open+Sans:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="/css/style.css">
-<link rel="stylesheet" href="/css/content.css">
+<link rel="stylesheet" href="${assetUrl('css/style.css')}">
+<link rel="stylesheet" href="${assetUrl('css/content.css')}">
 
 <script type="application/ld+json">
 ${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }, null, 2)}
@@ -281,7 +292,12 @@ function navBlock(currentPath: string): string {
           className: 'navbar-logo-img',
           lazy: false,
         })}</a>
-        <div class="navbar-menu">
+        <button type="button" class="navbar-toggle" aria-label="Menüyü aç" aria-expanded="false" aria-controls="navbar-menu">
+          <span class="navbar-toggle-bar"></span>
+          <span class="navbar-toggle-bar"></span>
+          <span class="navbar-toggle-bar"></span>
+        </button>
+        <div class="navbar-menu" id="navbar-menu">
 ${links}
             <a class="navbar-flowick-icon" href="https://flowickbpm.com" target="_blank" rel="noopener" title="Flowick BPM'e giriş"><img src="/img/flowick-logo.png" alt="Flowick BPM" width="128" height="128" class="navbar-flowick-img" loading="lazy" decoding="async"></a>
             <a class="nav-link" href="https://flowickbpm.com" target="_blank" rel="noopener">Flowick BPM</a>
@@ -623,7 +639,7 @@ ${page.cta === false ? '' : ctaBlock()}
 ${footerBlock()}
 <!-- footer:end -->
 
-<script src="/js/script.js" defer></script>
+<script src="${assetUrl('js/script.js')}" defer></script>
 </body>
 </html>
 `;
@@ -899,6 +915,8 @@ for (const page of MANUAL_PAGES) {
   for (const [name, fn] of Object.entries(EXTRA_BLOCKS[page.file] || {})) {
     src = injectBlock(src, name, fn());
   }
+  // Betik etiketi işaretli blokların dışında; sürümünü burada güncelle.
+  src = src.replace(/\/js\/script\.js(\?v=[0-9a-f]+)?"/g, `${assetUrl('js/script.js')}"`);
   writeFileSync(file, src, 'utf8');
   console.log(`güncellendi  ${page.file}`);
 }

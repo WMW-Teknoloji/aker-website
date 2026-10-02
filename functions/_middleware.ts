@@ -59,7 +59,9 @@ function icerikUret(bolge: Bolge, data: CmsData, careerId: string | null): strin
     case 'hero-slaytlar':
       return data.slides.length ? renderSlides(data.slides) : null;
     case 'musteriler':
-      return data.clients.length ? renderClients(data.clients) : null;
+      return data.clients.length
+        ? `      <div class="swiper-wrapper clients-slides-wrapper">\n${renderClients(data.clients)}\n      </div>`
+        : null;
     case 'haberler':
       return data.news.length ? `      <div class="bubble-element news-grid">\n${renderNews(data.news)}\n      </div>` : null;
     case 'kariyer':
@@ -113,13 +115,18 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
 
   try {
     const surum = await contentVersion(env);
-    const onbellekAnahtari = new Request(`${url.origin}${yol}?v=${surum}&ilan=${careerId ?? ''}`, {
-      method: 'GET',
-    });
+    // Şablonun (statik HTML) kendi ETag'i de sürüme katılır: yalnız içerik
+    // sürümüne bakılırsa yeni yayından sonra tarayıcı 304 alıp eski sayfada,
+    // Worker önbelleği de eski şablonda kalır.
+    const sablon = (response.headers.get('ETag') ?? '').replace(/^W\//, '').replace(/[^0-9A-Za-z-]/g, '');
+    const onbellekAnahtari = new Request(
+      `${url.origin}${yol}?v=${surum}&s=${sablon}&ilan=${careerId ?? ''}`,
+      { method: 'GET' },
+    );
     const onbellek = caches.default;
 
     // Tarayıcıdaki kopya güncelse gövde yeniden gönderilmez.
-    const etag = `W/"icerik-${surum}-${careerId ?? ''}"`;
+    const etag = `W/"icerik-${surum}-${sablon}-${careerId ?? ''}"`;
     if (request.headers.get('If-None-Match') === etag) {
       return new Response(null, {
         status: 304,

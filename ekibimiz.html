@@ -33,8 +33,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Open+Sans:wght@400;600;700&display=swap">
-<link rel="stylesheet" href="/css/style.css">
-<link rel="stylesheet" href="/css/content.css">
+<link rel="stylesheet" href="/css/style.css?v=bd55afe9">
+<link rel="stylesheet" href="/css/content.css?v=3f799e2b">
 
 <script type="application/ld+json">
 {
@@ -275,7 +275,12 @@
     <div class="navbar-row">
       <div class="navbar-links">
         <a href="/" class="navbar-logo" aria-label="AKER OSGB ana sayfa"><img src="/img/aker-osgb-logo.webp" alt="AKER OSGB logosu" width="240" height="75" class="navbar-logo-img" decoding="async"></a>
-        <div class="navbar-menu">
+        <button type="button" class="navbar-toggle" aria-label="Menüyü aç" aria-expanded="false" aria-controls="navbar-menu">
+          <span class="navbar-toggle-bar"></span>
+          <span class="navbar-toggle-bar"></span>
+          <span class="navbar-toggle-bar"></span>
+        </button>
+        <div class="navbar-menu" id="navbar-menu">
             <a class="nav-link" href="/hakkimizda">Hakkımızda</a>
             <a class="nav-link" href="/hizmetlerimiz">Hizmetlerimiz</a>
             <a class="nav-link" href="/belgelerimiz">Belgelerimiz</a>
@@ -293,6 +298,6 @@
 <!-- nav:end -->
 
 </div>
-<script src="/js/script.js" defer></script>
+<script src="/js/script.js?v=29c2f3e9" defer></script>
 </body>
 </html>

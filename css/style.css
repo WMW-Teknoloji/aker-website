@@ -114,13 +114,17 @@ button {
    Hero Slider
    ========================================================= */
 
+/* Yükseklik slayt görselleriyle (1920x512) aynı orandan gelir; sabit
+   yükseklik dar ekranda görselin yalnız ortasını gösteriyordu.
+   Üst boşluk: 64px sabit menü - 25px WhatsApp kapsayıcısı; yoksa
+   görselin üstü menünün arkasında kalır. */
 .hero-swiper {
   align-self: center;
   width: 100%;
   max-width: 1500px;
   min-width: 200px;
-  height: 400px;
-  min-height: 400px;
+  aspect-ratio: 1920 / 512;
+  margin: 39px auto 0;
 }
 
 .hero-swiper .swiper,
@@ -547,6 +551,7 @@ button {
 
 .document-img {
   width: 100%;
+  height: auto;
   display: block;
 }
 
@@ -628,6 +633,7 @@ button {
 
 .job-image img {
   width: 100%;
+  height: auto;
   display: block;
 }
 
@@ -713,6 +719,7 @@ button {
   display: flex;
   flex-direction: column;
   width: 360px;
+  max-width: 100%;
   margin-top: 70px;
 }
 
@@ -1284,6 +1291,7 @@ button {
 
 .footer-logo-img {
   width: 100%;
+  height: auto;
   display: block;
 }
 
@@ -1316,6 +1324,11 @@ button {
   display: flex;
   align-items: center;
   gap: 15px;
+}
+
+/* Dar ekranda metin uzayınca logo kutusu daralıp görseli ezmesin. */
+.footer-powered-logo {
+  flex-shrink: 0;
 }
 
 .footer-powered-img {
@@ -1423,9 +1436,91 @@ button {
   border-radius: 100px;
 }
 
+/* Hamburger düğmesi yalnızca dar ekranda görünür. */
+.navbar-toggle {
+  display: none;
+}
+
 /* =========================================================
    Duyarlı Tasarım (Responsive)
    ========================================================= */
+
+/* Menü 1200px altında tek satıra sığmıyor; hamburger açılır menüye geçer. */
+@media (max-width: 1199px) {
+  .navbar-toggle {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    padding: 0 11px;
+    border: 0;
+    border-radius: 50px;
+    background-color: transparent;
+    cursor: pointer;
+  }
+
+  .navbar-toggle:hover,
+  .navbar-toggle:focus-visible {
+    background-color: rgba(2, 5, 211, 0.08);
+  }
+
+  .navbar-toggle-bar {
+    display: block;
+    width: 100%;
+    height: 2px;
+    border-radius: 2px;
+    background-color: var(--color_text_default);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .navbar.menu-acik .navbar-toggle-bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .navbar.menu-acik .navbar-toggle-bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  .navbar.menu-acik .navbar-toggle-bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .navbar-menu {
+    display: none;
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 12px 16px 20px;
+    max-height: calc(100vh - 64px);
+    max-height: calc(100dvh - 64px);
+    overflow-y: auto;
+    background-color: #ffffff;
+    box-shadow: 0 12px 24px rgba(9, 9, 20, 0.12);
+  }
+
+  .navbar.menu-acik .navbar-menu {
+    display: flex;
+  }
+
+  .navbar-menu .nav-link {
+    padding: 12px 16px;
+    font-size: 16px;
+    border-radius: 12px;
+  }
+
+  /* Açılır menüde yalnız "Flowick BPM" bağlantısı yeterli. */
+  .navbar-menu .navbar-flowick-icon {
+    display: none;
+  }
+}
 
 @media (max-width: 992px) {
   .services-grid,
@@ -1443,19 +1538,42 @@ button {
 }
 
 @media (max-width: 600px) {
-  .services-grid,
+  /* Hizmetler mobilde de iki sütun kalır (992px kuralı). */
   .documents-grid,
   .team-grid {
     grid-template-columns: 1fr;
   }
 
-  .navbar-menu {
-    gap: 4px;
+  /* Haberler ve kariyer: kartlar küçülmeden tek tek kayar, oklar kartın yanında. */
+  .news-carousel,
+  .careers-carousel {
+    padding: 0 44px;
   }
 
-  .nav-link {
-    padding: 8px 10px;
-    font-size: 12px;
+  .news-carousel .nav-icon,
+  .careers-carousel .nav-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .news-grid,
+  .careers-grid {
+    justify-content: flex-start;
+    gap: 16px;
+    padding: 10px 2px;
+    scroll-padding: 0 2px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .news-card,
+  .career-card {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+  }
+
+  .navbar-links {
+    width: calc(100% - 32px);
+    margin: 0 16px;
   }
 
   .about-html-embed {
