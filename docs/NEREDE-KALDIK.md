@@ -1,30 +1,49 @@
 # AKER OSGB Sitesi — Nerede Kaldık
 
-Son güncelleme: 2026-08-04
+Son güncelleme: 2026-09-16
 Dal: `master`
 
-## Son oturum (2026-08-04) — lokal doğrulama
+## Son oturum (2026-09-16) — alan adı Cloudflare'e taşındı
 
-`npm run dev:full` ile site ve yönetim paneli lokalde çalıştırıldı, elle test edildi.
-Doğrulananlar: genel sayfalar 200, D1 + R2 bağlı, panel girişi çerez üretiyor, altı
-içerik koleksiyonu tohum verisiyle dolu, gelen kutusu uçları (`applications`,
-`messages`, `subscribers`) boş ve 200, çerezsiz istek 401, middleware D1 içeriğini
-HTML'e enjekte ediyor. Kod değişikliği yapılmadı.
+`akerosgb.com.tr` Bubble'dan koparıldı; site, WMW'nin diğer siteleriyle aynı Cloudflare
+hesabındaki `aker-website` Pages projesinden yayınlanacak. Bu oturumda Cloudflare
+tarafının tamamı hazırlandı. **Kod ve içerik değişmedi.**
 
-Tek karar: aşağıdaki **Resend hesabı** maddesi (Flowick ile ortak hesap).
+- Bölge hesaba eklendi: `b3e7e430a716162af1e61c61baae2dba`, durum `pending`.
+  Nameserver çifti: `hera.ns.cloudflare.com`, `kayden.ns.cloudflare.com`.
+- Eski bölgedeki posta kayıtları birebir girildi: MX `mail.trmail.com.tr` (öncelik 10),
+  TXT `v=spf1 a mx include:relay.mailbaby.net ~all`, CNAME `mail` → `mail.trmail.com.tr`,
+  CNAME `autodiscover` → `autodiscover.trmail.com.tr`. Dördü de proxy kapalı (gri bulut).
+- Resend kayıtları girildi (`send.akerosgb.com.tr`): DKIM TXT, SPF TXT, MX, CNAME.
+- `@` ve `www` → `aker-website.pages.dev` (proxy açık), ikisi de Pages projesine custom
+  domain olarak tanımlandı; durum `initializing`, bölge Active olunca sertifika çıkar.
+- Zone ayarları: SSL `strict`, Always Use HTTPS açık, Automatic HTTPS Rewrites açık.
+- `npm run typecheck` ve `npm run check` temiz; site yeniden deploy edildi (`915d2ef1`).
 
-### ⛔ EN KRİTİK ENGEL
+Kullanıcıya verilen adım adım kılavuz (Artifact):
+https://claude.ai/artifact/B7UHv2c6rsxGeZEgfpvzmM
 
-**Gönderen e-posta adresi `@flowick.com` OLARAK CANLIYA ÇIKMAYACAK.** AKER'in kendi
-alan adı taşınacak, gönderen `@akerosgb.com.tr` olacak. **AKER'den cevap bekleniyor.**
-Ayrıntı: "YARININ İLK İŞİ: iletişim formu e-postası" bölümü.
+Kullanılan API token `~/.cf-aker-token` dosyasında ve **2026-09-24'te sona eriyor**;
+sonrasında yeni token üretilmeli (Account: Cloudflare Pages Edit + Account Settings Read;
+Zone: Zone Edit, DNS Edit, Zone Settings Edit — hepsi "All zones").
+
+### ⛔ EN KRİTİK ENGEL: nameserver değişimi — panel şifresi AKER'de
+
+Alan adı METUnic'te (ODTÜ Geliştirme Vakfı BT) **AKER şirketi adına** kayıtlı; müşteri
+paneli `https://app.metunic.com.tr/client/login/`. Nameserver'lar hâlâ
+`ns1/ns2.elitesistem.com` (DNS'i Elite Sistem yönetiyor, Worldstream sunucuları).
+Panel şifresi AKER'de, bizde yok — 2026-09-16'da kullanıcının yöneticisine iletildi.
+
+Bu tek kayıt değişmeden site ziyaretçiye görünmez. Değişince geçiş kendiliğinden olur;
+Cloudflare tarafında yapılacak başka işlem yok. Alan adı whois'te transfere kilitli,
+ancak bu nameserver değişimini engellemez.
 
 ## Durum özeti
 
-Bu repodaki statik site **henüz canlıda değil**. `akerosgb.com.tr` şu an hâlâ Bubble
-uygulamasını sunuyor (yanıt başlıklarında `X-Powered-By: Express`, `X-Bubble-Perf`,
-`Set-Cookie: osgbaker_live_*`). Bu turda yapılan SEO çalışması, repo canlıya alındığında
-etkili olacak.
+Bu repodaki statik site **henüz ziyaretçiye görünmüyor**. `akerosgb.com.tr`, nameserver
+değişimine kadar Bubble uygulamasını sunmaya devam ediyor (`X-Powered-By: Express`,
+`X-Bubble-Perf`, `Set-Cookie: osgbaker_live_*`). Cloudflare tarafı hazır; eksik olan tek
+şey registrar panelindeki nameserver kaydı.
 
 Yapılanlar: teknik SEO altyapısı, semantik HTML, yapılandırılmış veri, görsellerin
 repoya taşınması, performans temizliği, 19 yeni içerik sayfası, TypeScript geçişi ve
@@ -217,14 +236,20 @@ sunar. Böylece deploy davranışı TypeScript öncesiyle aynı kalır.
    > Doğrulama dışarıdan bir vekil sunucu üzerinden yapıldı. Panel ancak alan adı
    > bağlandıktan sonra buradan kullanılabilir.
 
-2. **`akerosgb.com.tr` DNS'i Bubble'dan Pages'e çevrilir.** (Wrangler yetkisi zone
-   üzerinde yalnızca okuma olduğu için bu adım panelden elle yapılmalıdır:
-   Cloudflare Dashboard → Pages → aker-website → Custom domains → Set up a domain.) Bubble'daki sayfa yapısı ile
-   yeni yapı birebir aynı (`/`, `/belgelerimiz`, `/ekibimiz`, `/isbasvuru` — canlıda
-   kontrol edildi, başka sayfa yok), bu yüzden ek 301 gerekmiyor.
-3. **www → apex yönlendirmesi** Cloudflare panelinden Redirect Rule ile kurulmalı.
-   `_redirects` dosyası alan adı düzeyinde yönlendirme yapamaz. Şu an `www.akerosgb.com.tr`
-   DNS'te var ve içerik sunuyor — bu düzeltilmezse çift içerik olur.
+2. ~~`akerosgb.com.tr` DNS'i Bubble'dan Pages'e çevrilir~~ — **Cloudflare tarafı
+   TAMAMLANDI 2026-09-16**: bölge kuruldu, kayıtlar girildi, `@` ve `www` Pages projesine
+   custom domain olarak bağlandı. **Kalan:** registrar panelinde (METUnic) nameserver
+   `hera.ns.cloudflare.com` + `kayden.ns.cloudflare.com` yapılacak — şifre AKER'de.
+   Bubble'daki sayfa yapısı ile yeni yapı birebir aynı (`/`, `/belgelerimiz`,
+   `/ekibimiz`, `/isbasvuru` — canlıda kontrol edildi, başka sayfa yok), ek 301 gerekmiyor.
+3. **www → apex yönlendirmesi** Redirect Rule ile kurulmalı — **API token'ıyla
+   kurulamadı**: `http_request_dynamic_redirect` fazı "request is not authorized" döndü
+   (Transform Rules izni bu fazı kapsamıyor). Panelden elle:
+   Cloudflare → akerosgb.com.tr → Rules → Redirect Rules → Create rule; eşleşme
+   `Hostname equals www.akerosgb.com.tr`, hedef dinamik ifade
+   `concat("https://akerosgb.com.tr", http.request.uri.path)`, 301, query string korunur.
+   `_redirects` dosyası alan adı düzeyinde yönlendirme yapamaz; kural kurulmazsa aynı
+   içerik iki adreste görünür (Bubble'da yönlendirme ters yöndeydi: apex → www).
 4. **`.dev.vars` / Pages ortam değişkenleri**: iletişim formu Resend kullanıyor
    (`functions/api/contact.js`). Anahtar Pages proje ayarlarına girilmeli, yoksa form çalışmaz.
 5. Canlıya alındıktan sonra: Search Console + Bing Webmaster kurulumu, sitemap gönderimi,
@@ -268,18 +293,20 @@ Kod tarafında değişiklik gerekmedi; yalnızca değişken adları farklı
 AKER için ayrı bir `RESEND_API_KEY` üretildi ve lokal `.dev.vars`'a girildi
 (gitignore'lu; repoya **girmez**). Canlıya Pages secret olarak eklenmesi gerekiyor.
 
-### ⛔ ENGEL: gönderen alan adı — AKER'den cevap bekleniyor
+### ✅ ÇÖZÜLDÜ: gönderen alan adı — `send.akerosgb.com.tr`
 
-**`flowick.com` GEÇİCİDİR. Canlıya bu adresle ÇIKILMAYACAK.**
+**`flowick.com` GEÇİCİDİR, canlıya bu adresle ÇIKILMAYACAK** — karar değişmedi.
 
-AKER'in kendi alan adı (`akerosgb.com.tr`) taşınacak; gönderen adres
-`@akerosgb.com.tr` olacak. **Taşıma için AKER'den cevap bekleniyor** — bu gelmeden
-e-posta işi kapanmaz, canlıya alma tamamlanmaz. Bu maddeyi atlama: müşteriye giden
-başvuru/iletişim bildirimlerinin `no-reply@flowick.com`'dan gitmesi kabul edilmedi.
+2026-09-16: alan adı artık bizde olduğu için Flowick'in Resend hesabına
+`send.akerosgb.com.tr` alt alan adı eklendi (id `41643ad1-c7e1-490e-9057-61ae7d882aa0`,
+bölge `eu-west-1`, durum `not_started`). DKIM/SPF/MX/CNAME kayıtlarının dördü de yeni
+Cloudflare bölgesine girildi. Alt alan adında doğrulandığı için **kök SPF kaydına
+dokunulmadı** — AKER'in kendi giden postası etkilenmiyor.
 
-Şu anki durum: hesapta doğrulanmış tek alan adı `flowick.com` (Resend API ile
-doğrulandı — `status: verified`, `sending: enabled`, bölge `eu-west-1`). Bu yüzden
-**yalnızca lokal testte** `MAIL_FROM = AKER OSGB <no-reply@flowick.com>` kullanılıyor.
+Bölge Active olunca sırayla: Resend'de doğrulama tetiklenir, `MAIL_FROM` =
+`AKER OSGB <no-reply@send.akerosgb.com.tr>` ve `CONTACT_TO_EMAIL` = `info@akerosgb.com.tr`
+Pages secret olarak güncellenir, yeniden deploy edilir, gerçek gönderim denenir.
+Lokal `.dev.vars` test için `no-reply@flowick.com` kullanmaya devam edebilir.
 
 ### 🚨 TAŞIMADAN ÖNCE OKU: AKER'in mevcut e-postası başka sağlayıcıda
 
@@ -348,13 +375,13 @@ Sonrasında gerçek bir gönderim denemesi yapılıp kutuya düştüğü doğrul
 
 ## AÇIK İŞLER / DIŞ GİRDİ BEKLEYENLER
 
-- **⛔ AKER'in alan adının taşınması (EN KRİTİK, AKER'DEN CEVAP BEKLENİYOR).**
-  `akerosgb.com.tr` taşınacak; sonrasında Resend'e eklenip SPF/DKIM doğrulanacak ve
-  gönderen adres `@akerosgb.com.tr` olacak. **Geçici `@flowick.com` adresiyle canlıya
-  çıkılmayacak.** Bu cevap gelmeden e-posta işi ve alan adı cutover'ı kapanmaz.
-  **🚨 Taşıma sırasında AKER'in mevcut e-postası kesilebilir** — posta `trmail.com.tr`
-  üzerinde, MX ve SPF kayıtları birebir taşınmalı. Ayrıntı: "TAŞIMADAN ÖNCE OKU"
-  bölümü. Ek API anahtarı gerekmiyor; alıcı taraf için Resend'de kurulum yok.
+- **⛔ Nameserver değişimi (EN KRİTİK, AKER'DEN ŞİFRE BEKLENİYOR).** METUnic panelinde
+  (`app.metunic.com.tr`) nameserver `hera.ns.cloudflare.com` + `kayden.ns.cloudflare.com`
+  yapılacak. Panel AKER adına kayıtlı, şifre bizde yok. Bu yapılmadan site canlıya
+  çıkmaz. Posta kayıtları yeni bölgeye önceden girildiği için kesinti beklenmiyor;
+  geçişten sonra `info@akerosgb.com.tr` adresine dışarıdan test mesajı atılıp
+  doğrulanmalı. Geri dönüş: nameserver'ları eski hâline çevirmek (eski bölge ve Bubble
+  uygulaması silinmediği sürece site birkaç saatte geri gelir).
 - **Mevzuat rakamlarının doğrulanması (ÖNEMLİ).** Hizmet ve SSS sayfalarındaki süreler
   (görevlendirme dakikaları, risk değerlendirmesi ve eğitim yenileme aralıkları,
   ilkyardımcı oranları, periyodik muayene sıklıkları) 6331 sayılı Kanun ve ilgili

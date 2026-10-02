@@ -1,0 +1,23 @@
+{
+  "//": "Kendi sunucumuzdaki çalıştırıcı (server/). Node ile doğrudan çalışır; Functions kodunu da içeri aldığı için Workers tipleri gerekli.",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023"],
+    "types": ["node", "@cloudflare/workers-types"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["server/**/*.ts", "functions/**/*.ts", "src/render.ts", "src/content-types.ts"]
+}

@@ -8,7 +8,7 @@
     "build": "npm run bundle && npm run pages",
     "bundle": "node tools/bundle.ts",
     "pages": "node tools/build.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.tools.json && tsc -p tsconfig.functions.json && tsc -p tsconfig.server.json",
     "check": "node tools/seo-check.ts",
     "verify": "npm run typecheck && npm run build && npm run check",
     "dev": "node tools/serve.ts",
@@ -16,7 +16,9 @@
     "db:setup": "wrangler d1 execute aker-website --local --file=db/schema.sql && wrangler d1 execute aker-website --local --file=db/seed.sql",
     "db:setup:remote": "wrangler d1 execute aker-website --remote --file=db/schema.sql && wrangler d1 execute aker-website --remote --file=db/seed.sql",
     "dev:full": "wrangler pages dev . --port 8788",
-    "e2e": "node tools/e2e.ts"
+    "e2e": "node tools/e2e.ts",
+    "sunucu": "node server/main.ts",
+    "deploy": "node tools/deploy.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250801.0",
