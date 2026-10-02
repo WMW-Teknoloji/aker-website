@@ -1,0 +1,58 @@
+name: Deploy Production
+
+# master'a gelen her push akerosgb.com.tr'ye yayınlanır (Hetzner,
+# /srv/aker-website, PM2 aker-website). Sunucuya elle dosya kopyalanmaz.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run check
+      # HTML ve js/ derlenmiş halde repoda; kaynaktan (src/, tools/, css/)
+      # yeniden derleyince fark çıkıyorsa `npm run build` commit'lenmemiştir.
+      - name: Derleme çıktısı güncel mi
+        run: |
+          npm run build
+          git diff --exit-code -- . ':(exclude)sitemap.xml'
+
+  deploy:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            # Sunucuda derleme yok: çıktı repodan gelir. `.env` ve veri
+            # dizini (/srv/aker-veri) git dışında, dokunulmaz.
+            cd /srv/aker-website
+            ONCEKI=$(git rev-parse HEAD)
+            git fetch origin master
+            git reset --hard origin/master
+            # HTML/CSS/JS her istekte diskten okunur; süreç yalnızca sunucu
+            # tarafı kod değişince yeniden başlatılır.
+            if git diff --name-only "$ONCEKI" HEAD | grep -qE '^(server|functions|src)/|^package\.json$'; then
+              pm2 restart aker-website --update-env
+              echo "pm2 yeniden başlatıldı"
+            fi
+            git log --oneline -1

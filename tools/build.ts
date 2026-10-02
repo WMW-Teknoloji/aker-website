@@ -47,10 +47,12 @@ const SIZES = JSON.parse(readFileSync(path.join(ROOT, 'tools', 'image-sizes.json
 /**
  * CSS/JS adresine içerik özeti ekler (`/css/style.css?v=1a2b3c4d`).
  * _headers bu dosyaları bir gün önbelleğe aldırıyor; dosya değişince
- * adres de değiştiği için tarayıcı eski sürümde kalmaz.
+ * adres de değiştiği için tarayıcı eski sürümde kalmaz. Satır sonları
+ * özetten önce LF'ye çevrilir: Windows (CRLF) ile CI (LF) aynı özeti üretir.
  */
 function assetUrl(rel: string): string {
-  const hash = createHash('sha256').update(readFileSync(path.join(ROOT, rel))).digest('hex').slice(0, 8);
+  const icerik = readFileSync(path.join(ROOT, rel), 'utf8').replace(/\r\n/g, '\n');
+  const hash = createHash('sha256').update(icerik).digest('hex').slice(0, 8);
   return `/${rel}?v=${hash}`;
 }
 
