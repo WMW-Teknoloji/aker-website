@@ -89,7 +89,7 @@ export const BRANCHES: Branch[] = [
     district: 'Gebze',
     city: 'Kocaeli',
     postalCode: '41400',
-    maps: 'https://www.google.com/maps/search/?api=1&query=A%C5%9F%C4%B1k%20Veysel%20Sk.%20No%3A%201%2F1%20HG%C3%BCzeller%20OsbY%C3%B6netim%20Binas%C4%B1%20Gebze%2FKocaeli',
+    maps: 'https://www.google.com/maps/search/?api=1&query=A%C5%9F%C4%B1k%20Veysel%20Sk.%20No%3A%201%2F1%20G%C3%BCzeller%20OSB%20Y%C3%B6netim%20Binas%C4%B1%20Gebze%2FKocaeli',
   },
   {
     id: 'mermerciler',
@@ -99,6 +99,15 @@ export const BRANCHES: Branch[] = [
     city: 'Kocaeli',
     postalCode: '41455',
     maps: 'https://www.google.com/maps/search/?api=1&query=K%C3%B6seler%20Mah.%203.%20Cadde%20No%3A%2019%2FC%20Dilovas%C4%B1%2FKocaeli',
+  },
+  {
+    id: 'tosb',
+    name: 'AKER OSGB TOSB Şubesi',
+    street: 'TOSB Otomotiv Mah. 1. Cd. No: 10/1-B',
+    district: 'Çayırova',
+    city: 'Kocaeli',
+    postalCode: '41420',
+    maps: 'https://www.google.com/maps/search/?api=1&query=TOSB%20Otomotiv%20Mah.%201.%20Cd.%20No%3A%2010%2F1-B%20%C3%87ay%C4%B1rova%2FKocaeli',
   },
 ];
 

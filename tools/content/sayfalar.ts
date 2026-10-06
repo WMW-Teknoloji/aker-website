@@ -48,7 +48,7 @@ export const PAGES: ContentPage[] = [
     description:
       '2012’den bu yana Gebze, Dilovası ve Kocaeli genelinde ortak sağlık ve güvenlik birimi hizmeti veren AKER OSGB’nin kuruluşu, ekibi ve çalışma yaklaşımı.',
     lead:
-      'AKER OSGB, işyerlerinin iş sağlığı ve güvenliği yükümlülüklerini yerine getirmesi için 2012 yılında Gebze’de kuruldu. Bugün dört şubeyle Kocaeli sanayisine hizmet veriyoruz.',
+      'AKER OSGB, işyerlerinin iş sağlığı ve güvenliği yükümlülüklerini yerine getirmesi için 2012 yılında Gebze’de kuruldu. Bugün beş şubeyle Kocaeli sanayisine hizmet veriyoruz.',
     blocks: [
       {
         h2: 'Kuruluş amacımız',
@@ -122,7 +122,7 @@ export const PAGES: ContentPage[] = [
       {
         h2: 'Hangi bölgelere gidiyoruz?',
         p: [
-          'Gebze Organize Sanayi Bölgesi (GOSB), Güzeller Organize Sanayi Bölgesi, Gebze merkez, Sultanorhan, Osman Yılmaz, Tatlıkuyu ve Balçık çevresindeki işletmelere saha hizmeti veriyoruz. Çayırova ve Darıca’daki işletmeler de Gebze şubelerimiz üzerinden hizmet alır.',
+          'Gebze Organize Sanayi Bölgesi (GOSB), Güzeller Organize Sanayi Bölgesi, Gebze merkez, Sultanorhan, Osman Yılmaz, Tatlıkuyu ve Balçık çevresindeki işletmelere saha hizmeti veriyoruz. Çayırova’daki işletmelere TOSB şubemizden, Darıca’dakilere Gebze şubelerimizden hizmet veriyoruz.',
         ],
       },
     ],
@@ -190,7 +190,7 @@ export const PAGES: ContentPage[] = [
       {
         h2: 'Hizmet verdiğimiz ilçeler',
         p: [
-          'Merkezimiz Gebze’de, dört şubemiz Gebze ve Dilovası’ndadır. Bu konumdan Çayırova, Darıca, Körfez, Derince ve Kocaeli merkeze uzanan hatta saha hizmeti veriyoruz.',
+          'Merkezimiz Gebze’de, beş şubemiz Gebze, Dilovası ve Çayırova’dadır. Bu konumdan Darıca, Körfez, Derince ve Kocaeli merkeze uzanan hatta saha hizmeti veriyoruz.',
         ],
         links: [
           { href: '/gebze-osgb', label: 'Gebze OSGB' },
@@ -209,15 +209,15 @@ export const PAGES: ContentPage[] = [
   {
     slug: 'subelerimiz',
     h1: 'Şubelerimiz',
-    title: 'Şubelerimiz | Gebze ve Dilovası | AKER OSGB',
+    title: 'Şubelerimiz | Gebze, Dilovası ve Çayırova | AKER OSGB',
     description:
-      'AKER OSGB şube adresleri ve iletişim bilgileri. Gebze merkez, Sultanorhan, Güzeller OSB ve Dilovası Mermerciler şubeleri.',
+      'AKER OSGB şube adresleri ve iletişim bilgileri. Gebze merkez, Sultanorhan, Güzeller OSB, Dilovası Mermerciler ve Çayırova TOSB şubeleri.',
     lead:
-      'Gebze’de üç, Dilovası’nda bir olmak üzere dört şubemiz bulunuyor. Tüm şubelerimize aynı telefon numarasından ulaşabilirsiniz: 444 3 375.',
+      'Gebze’de üç, Dilovası ve Çayırova’da birer olmak üzere beş şubemiz bulunuyor. Tüm şubelerimize aynı telefon numarasından ulaşabilirsiniz: 444 3 375.',
     blocks: [
       {
         h2: 'Şube adreslerimiz',
-        branches: ['merkez', 'sultanorhan', 'guzeller', 'mermerciler'],
+        branches: ['merkez', 'sultanorhan', 'guzeller', 'mermerciler', 'tosb'],
       },
       {
         h2: 'Hangi şubeye başvurmalıyım?',
@@ -235,7 +235,7 @@ export const PAGES: ContentPage[] = [
     h1: 'İletişim',
     title: 'İletişim | AKER OSGB Gebze Kocaeli',
     description:
-      'AKER OSGB iletişim bilgileri: 444 3 375, info@akerosgb.com.tr. Gebze ve Dilovası şube adresleri, teklif ve bilgi talebi formu.',
+      'AKER OSGB iletişim bilgileri: 444 3 375, info@akerosgb.com.tr. Gebze, Dilovası ve Çayırova şube adresleri, teklif ve bilgi talebi formu.',
     lead:
       'Teklif, bilgi ve saha ziyareti talepleriniz için bize ulaşın. Telefonla, WhatsApp’tan veya formu doldurarak yazabilirsiniz.',
     blocks: [
@@ -245,7 +245,7 @@ export const PAGES: ContentPage[] = [
       },
       {
         h2: 'Şube adreslerimiz',
-        branches: ['merkez', 'sultanorhan', 'guzeller', 'mermerciler'],
+        branches: ['merkez', 'sultanorhan', 'guzeller', 'mermerciler', 'tosb'],
       },
       {
         h2: 'Teklif isterken hangi bilgiler gerekir?',

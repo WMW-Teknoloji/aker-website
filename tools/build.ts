@@ -832,7 +832,7 @@ export const MANUAL_PAGES: PageSpec[] = [
     path: '/',
     title: 'AKER OSGB | Gebze ve Kocaeli Ortak Sağlık ve Güvenlik Birimi',
     description:
-      'Gebze, Dilovası ve Kocaeli’de OSGB hizmeti. İş güvenliği uzmanı, işyeri hekimi, risk değerlendirmesi ve İSG eğitimleri. 2012’den beri, dört şubeyle.',
+      'Gebze, Dilovası ve Kocaeli’de OSGB hizmeti. İş güvenliği uzmanı, işyeri hekimi, risk değerlendirmesi ve İSG eğitimleri. 2012’den beri, beş şubeyle.',
     breadcrumb: [{ href: '/', label: 'Ana Sayfa' }],
     schema: [...BRANCHES.map(branchNode), ...SERVICES.map(serviceNode)],
     priority: '1.0',
