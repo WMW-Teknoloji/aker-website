@@ -34,5 +34,6 @@ section('careers', DEFAULT_DATA.careers, ['id', 'sira', 'title', 'text', 'cardIm
 section('documents', DEFAULT_DATA.documents, ['id', 'sira', 'title', 'image']);
 section('news', DEFAULT_DATA.news, ['id', 'sira', 'title', 'text', 'image', 'link']);
 section('team', DEFAULT_DATA.team, ['id', 'sira', 'name', 'role', 'photo']);
+section('branches', DEFAULT_DATA.branches, ['id', 'sira', 'name', 'street', 'district', 'city', 'postalCode', 'maps']);
 
 console.log(lines.join('\n'));

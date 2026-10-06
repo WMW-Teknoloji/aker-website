@@ -143,6 +143,28 @@
         { key: "name", label: "Ad Soyad" },
         { key: "role", label: "Unvan" }
       ]
+    },
+    branches: {
+      label: "Şubeler",
+      aciklama: "Şubeler sitenin alt kısmında, ana sayfadaki iletişim kutusunda, Şubelerimiz ve İletişim sayfalarında görünür. Gebze ve Dilovası sayfaları yalnızca kendi ilçesindeki şubeleri gösterir. Listedeki ilk şube merkez kabul edilir.",
+      fields: [
+        { key: "name", label: "Şube adı", type: "text", ipucu: "Örnek: AKER OSGB TOSB Şubesi" },
+        { key: "street", label: "Adres", type: "text", ipucu: "Mahalle, cadde/sokak ve numara. Örnek: TOSB Otomotiv Mah. 1. Cd. No: 10/1-B" },
+        { key: "district", label: "İlçe", type: "text", ipucu: "Örnek: Çayırova" },
+        { key: "city", label: "İl", type: "text", varsayilan: "Kocaeli" },
+        { key: "postalCode", label: "Posta kodu", type: "text", ipucu: "Bilinmiyorsa boş bırakılabilir." },
+        {
+          key: "maps",
+          label: "Harita bağlantısı",
+          type: "text",
+          ipucu: "Boş bırakılırsa adresten otomatik oluşturulur. Google Haritalar’dan kopyalanan https:// bağlantısı da yapıştırılabilir."
+        }
+      ],
+      columns: [
+        { key: "name", label: "Şube" },
+        { key: "street", label: "Adres" },
+        { key: "district", label: "İlçe" }
+      ]
     }
   };
   var ORDER_UP_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"></polyline></svg>';
@@ -282,7 +304,8 @@
   }
   function renderTable(content, config) {
     const items = state.kayitlar;
-    const countHtml = `<div class="admin-record-count">Toplam Kayıt Sayısı : ${items.length}</div>`;
+    const aciklamaHtml = config.aciklama ? `<p class="admin-section-note">${escapeHtml(config.aciklama)}</p>` : "";
+    const countHtml = `${aciklamaHtml}<div class="admin-record-count">Toplam Kayıt Sayısı : ${items.length}</div>`;
     if (items.length === 0) {
       content.innerHTML = `${countHtml}<div class="admin-empty">Henüz içerik eklenmedi.</div>`;
       return;
@@ -441,8 +464,9 @@
     if (!titleEl || !form || !modal) return;
     titleEl.textContent = id ? "Düzenle" : "Yeni Ekle";
     form.innerHTML = config.fields.map((field) => {
-      var _a;
-      const value = (_a = item == null ? void 0 : item[field.key]) != null ? _a : "";
+      var _a, _b;
+      const value = item ? (_a = item[field.key]) != null ? _a : "" : (_b = field.varsayilan) != null ? _b : "";
+      const ipucu = field.ipucu ? `<div class="admin-field-ipucu">${escapeHtml(field.ipucu)}</div>` : "";
       if (field.type === "textarea") {
         return `<div class="admin-field"><label for="alan-${field.key}">${escapeHtml(field.label)}</label><textarea id="alan-${field.key}" name="${field.key}">${escapeHtml(value)}</textarea></div>`;
       }
@@ -450,7 +474,7 @@
         const preview = value ? `<img class="admin-image-preview" src="${escapeAttr(value)}" alt="">` : '<div class="admin-image-preview admin-image-preview-empty">Görsel yok</div>';
         return `<div class="admin-field" data-image-field="${field.key}"><label for="alan-${field.key}">${escapeHtml(field.label)}</label>${preview}<input type="file" id="alan-${field.key}" accept="image/*" data-field="${field.key}"><input type="hidden" name="${field.key}" value="${escapeAttr(value)}"><div class="admin-field-durum"></div></div>`;
       }
-      return `<div class="admin-field"><label for="alan-${field.key}">${escapeHtml(field.label)}</label><input type="text" id="alan-${field.key}" name="${field.key}" value="${escapeAttr(value)}"></div>`;
+      return `<div class="admin-field"><label for="alan-${field.key}">${escapeHtml(field.label)}</label><input type="text" id="alan-${field.key}" name="${field.key}" value="${escapeAttr(value)}">${ipucu}</div>`;
     }).join("");
     for (const input of qsa('input[type="file"]', form)) {
       input.addEventListener("change", () => void gorselSec(input));

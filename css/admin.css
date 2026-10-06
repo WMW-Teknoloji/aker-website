@@ -376,6 +376,21 @@ body.admin-body {
   margin-bottom: 10px;
 }
 
+.admin-section-note {
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(9, 23, 71, 0.75);
+  margin: 0 0 14px;
+  max-width: 760px;
+}
+
+.admin-field-ipucu {
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgba(9, 23, 71, 0.6);
+  margin-top: 4px;
+}
+
 .admin-empty {
   background-color: var(--color_surface_default);
   border: 1px dashed rgba(9, 23, 71, 0.2);

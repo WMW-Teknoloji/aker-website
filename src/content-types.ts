@@ -52,6 +52,19 @@ export interface TeamMember {
   photo: string;
 }
 
+export interface Branch {
+  id: string;
+  name: string;
+  /** Mahalle, cadde/sokak ve numara. */
+  street: string;
+  district: string;
+  city: string;
+  /** Boş bırakılabilir; adres satırına yalnızca doluysa yazılır. */
+  postalCode: string;
+  /** Google Haritalar adresi; boşsa adresten üretilir. */
+  maps: string;
+}
+
 export interface CmsData {
   clients: Client[];
   slides: Slide[];
@@ -59,6 +72,7 @@ export interface CmsData {
   documents: CertificateDoc[];
   news: NewsItem[];
   team: TeamMember[];
+  branches: Branch[];
 }
 
 export type CollectionName = keyof CmsData;

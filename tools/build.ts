@@ -16,20 +16,25 @@ import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SITE, BRANCHES, NAV, FOOTER_LINKS, type Branch } from './site.ts';
+import { SITE, BRANCHES, NAV, FOOTER_LINKS } from './site.ts';
 import { SERVICES, type FaqEntry, type Service } from './content/hizmetler.ts';
 import { PAGES, type ContentBlock } from './content/sayfalar.ts';
 import { KVKK_PARAGRAFLARI } from './content/kvkk.ts';
 import { DEFAULT_DATA } from '../src/cms-data.ts';
 import {
+  renderBranchCards,
   renderCareerCards,
   renderCareerList,
   renderClients,
+  renderContactLocations,
   renderDocuments,
+  renderFooterBranches,
   renderJobDetail,
+  renderKurumSemasi,
   renderNews,
   renderSlides,
   renderTeam,
+  sayfaSubeleri,
 } from '../src/render.ts';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -55,11 +60,6 @@ function assetUrl(rel: string): string {
   const hash = createHash('sha256').update(icerik).digest('hex').slice(0, 8);
   return `/${rel}?v=${hash}`;
 }
-
-const BRANCH_BY_ID: Record<string, Branch> = Object.fromEntries(BRANCHES.map((b) => [b.id, b]));
-
-/** Merkez şube; Organization şemasının adresi buradan gelir. */
-const HQ: Branch = BRANCHES[0]!;
 
 /** Sayfa yolu ve başlıktan oluşan kırıntı öğesi. */
 interface Crumb {
@@ -107,48 +107,13 @@ function img(name: string, { alt, className, lazy = true }: ImgOptions): string 
 }
 
 const abs = (p: string): string => (p.startsWith('http') ? p : SITE.origin + (p.startsWith('/') ? p : `/${p}`));
-const fullAddress = (b: Branch): string => `${b.street}, ${b.postalCode} ${b.district}/${b.city}`;
 
 // ---------------------------------------------------------
 // JSON-LD parçaları
 // ---------------------------------------------------------
-function organizationNode(): Record<string, unknown> {
-  return {
-    '@type': 'Organization',
-    '@id': `${SITE.origin}/#organization`,
-    name: SITE.name,
-    legalName: SITE.legalName,
-    alternateName: SITE.fullName,
-    url: SITE.origin + '/',
-    logo: {
-      '@type': 'ImageObject',
-      url: abs('/img/aker-osgb-logo.webp'),
-      width: SIZES['aker-osgb-logo.webp']?.width,
-      height: SIZES['aker-osgb-logo.webp']?.height,
-    },
-    foundingDate: SITE.founded,
-    email: SITE.email,
-    telephone: SITE.phone,
-    sameAs: SITE.social,
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: HQ.street,
-      addressLocality: HQ.district,
-      addressRegion: HQ.city,
-      postalCode: HQ.postalCode,
-      addressCountry: 'TR',
-    },
-    contactPoint: {
-      '@type': 'ContactPoint',
-      telephone: SITE.phone,
-      contactType: 'customer service',
-      email: SITE.email,
-      areaServed: 'TR',
-      availableLanguage: ['Turkish'],
-    },
-  };
-}
-
+// Firma (Organization) ve şube (LocalBusiness) düğümleri şubeler
+// panelden yönetildiği için src/render.ts'te, ayrı bir betik
+// etiketinde üretilir (`kurum-sema` bölgesi).
 function websiteNode(): Record<string, unknown> {
   return {
     '@type': 'WebSite',
@@ -157,32 +122,6 @@ function websiteNode(): Record<string, unknown> {
     name: SITE.name,
     inLanguage: 'tr-TR',
     publisher: { '@id': `${SITE.origin}/#organization` },
-  };
-}
-
-function branchNode(b: Branch): Record<string, unknown> {
-  return {
-    '@type': 'LocalBusiness',
-    '@id': `${SITE.origin}/subelerimiz#${b.id}`,
-    name: b.name,
-    parentOrganization: { '@id': `${SITE.origin}/#organization` },
-    url: `${SITE.origin}/subelerimiz`,
-    telephone: SITE.phone,
-    email: SITE.email,
-    image: abs('/img/aker-osgb-logo.webp'),
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: b.street,
-      addressLocality: b.district,
-      addressRegion: b.city,
-      postalCode: b.postalCode,
-      addressCountry: 'TR',
-    },
-    hasMap: b.maps,
-    areaServed: [
-      { '@type': 'AdministrativeArea', name: 'Kocaeli' },
-      { '@type': 'AdministrativeArea', name: b.district },
-    ],
   };
 }
 
@@ -233,7 +172,7 @@ function serviceNode(service: Service): Record<string, unknown> {
 function headBlock(page: PageSpec): string {
   const canonical = abs(page.path);
   const ogImage = abs('/' + SITE.ogImage);
-  const graph = [organizationNode(), websiteNode(), ...(page.schema || [])];
+  const graph = [websiteNode(), ...(page.schema || [])];
   if (page.breadcrumb && page.breadcrumb.length > 1) graph.push(breadcrumbNode(page.breadcrumb));
 
   return `<meta charset="utf-8">
@@ -272,7 +211,10 @@ function headBlock(page: PageSpec): string {
 
 <script type="application/ld+json">
 ${JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }, null, 2)}
-</script>`;
+</script>
+<!-- kurum-sema:start -->
+${renderKurumSemasi(page.path, BRANCHES)}
+<!-- kurum-sema:end -->`;
 }
 
 // ---------------------------------------------------------
@@ -315,10 +257,6 @@ function footerBlock(): string {
     (l) => `        <li><a href="${l.href}">${l.label}</a></li>`
   ).join('\n');
 
-  const branches = BRANCHES.map(
-    (b) => `        <li><a href="${b.maps}" target="_blank" rel="noopener"><strong>${b.name}</strong><br>${esc(fullAddress(b))}</a></li>`
-  ).join('\n');
-
   return `<footer class="bubble-element footer-section">
   <div class="footer-top">
     <div class="footer-newsletter">
@@ -337,7 +275,9 @@ ${links}
     <div class="footer-branches">
       <div class="footer-nav-title">Şubelerimiz</div>
       <ul class="footer-branch-list">
-${branches}
+<!-- sube-alt:start -->
+${renderFooterBranches(BRANCHES)}
+<!-- sube-alt:end -->
       </ul>
       <div class="footer-contact-line">
         <a href="${SITE.phoneHref}">${SITE.phone}</a> &middot;
@@ -378,17 +318,6 @@ function whatsappBlock(): string {
 // ---------------------------------------------------------
 // Gövde blokları
 // ---------------------------------------------------------
-function branchCard(b: Branch): string {
-  return `      <li class="branch-card">
-        <h3 class="branch-name">${esc(b.name)}</h3>
-        <address class="branch-address">${esc(fullAddress(b))}</address>
-        <div class="branch-links">
-          <a href="${b.maps}" target="_blank" rel="noopener">Haritada aç</a>
-          <a href="${SITE.phoneHref}">${SITE.phone}</a>
-        </div>
-      </li>`;
-}
-
 function serviceCards(): string {
   return `    <ul class="service-card-list">
 ${SERVICES.map(
@@ -517,19 +446,7 @@ function teamGridBlock(): string {
   return `    <div class="bubble-element team-grid">\n${renderTeam(DEFAULT_DATA.team)}\n    </div>`;
 }
 
-const ICON_PIN = '<svg viewBox="0 0 24 24" class="location-svg" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>';
-
 function contactInfoBlock(): string {
-  const locations = BRANCHES.map(
-    (b) => `        <a class="location-item" href="${b.maps}" target="_blank" rel="noopener">
-          <div class="location-icon">${ICON_PIN}</div>
-          <div class="location-text">
-            <div class="location-name">${esc(b.name)}</div>
-            <div class="location-address">${esc(fullAddress(b))}</div>
-          </div>
-        </a>`
-  ).join('\n');
-
   const socials = [
     ['Facebook', SITE.social[0], 'M22.675 0h-21.35c-.732 0-1.325.593-1.325 1.325v21.351c0 .731.593 1.324 1.325 1.324h11.495v-9.294h-3.128v-3.622h3.128v-2.671c0-3.1 1.893-4.788 4.659-4.788 1.325 0 2.463.099 2.795.143v3.24l-1.918.001c-1.504 0-1.795.715-1.795 1.763v2.313h3.587l-.467 3.622h-3.12v9.293h6.116c.73 0 1.323-.593 1.323-1.325v-21.35c0-.732-.593-1.325-1.325-1.325z'],
     ['Instagram', SITE.social[1], 'M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z'],
@@ -544,7 +461,9 @@ function contactInfoBlock(): string {
   return `    <div class="bubble-element contact-info-block">
       <div class="contact-info-title-wrap"><h2 class="contact-info-title">İletişim Bilgileri</h2></div>
       <div class="bubble-element contact-locations">
-${locations}
+<!-- sube-iletisim:start -->
+${renderContactLocations(BRANCHES)}
+<!-- sube-iletisim:end -->
       </div>
 
       <div class="contact-quick-block">
@@ -565,13 +484,16 @@ ${socials}
     </div>`;
 }
 
-function renderBlocks(blocks: ContentBlock[]): string {
+function renderBlocks(blocks: ContentBlock[], pagePath: string): string {
   return blocks
     .map((b) => {
       const parts = [`    <h2>${esc(b.h2)}</h2>`];
       if (b.p) parts.push(...b.p.map((t) => `    <p>${esc(t)}</p>`));
       if (b.list) parts.push(`    <ul class="content-list">\n${b.list.map((i) => `      <li>${esc(i)}</li>`).join('\n')}\n    </ul>`);
-      if (b.branches) parts.push(`    <ul class="branch-list">\n${b.branches.map((id) => branchCard(BRANCH_BY_ID[id]!)).join('\n')}\n    </ul>`);
+      if (b.branches)
+        parts.push(
+          `    <ul class="branch-list">\n<!-- sube-kart:start -->\n${renderBranchCards(sayfaSubeleri(pagePath, BRANCHES))}\n<!-- sube-kart:end -->\n    </ul>`
+        );
       if (b.services) parts.push(serviceCards());
       if (b.contact) parts.push(contactBlock());
       if (b.form) parts.push(contactFormBlock());
@@ -717,7 +639,7 @@ for (const s of SERVICES) {
   });
 
   const body = [
-    renderBlocks(s.sections),
+    renderBlocks(s.sections, page.path),
     s.faq
       ? `  <section class="content-section">\n    <h2>Sık sorulan sorular</h2>\n${faqList(s.faq)}\n  </section>`
       : '',
@@ -749,21 +671,14 @@ for (const p of PAGES) {
       { href: '/', label: 'Ana Sayfa' },
       { href: `/${p.slug}`, label: p.h1 },
     ],
-    schema: [
-      ...(p.faqPage && p.faq ? [faqNode(p.faq)] : []),
-      ...(['subelerimiz', 'iletisim', 'gebze-osgb', 'dilovasi-osgb', 'kocaeli-osgb'].includes(p.slug)
-        ? BRANCHES.filter((b) =>
-            p.slug === 'gebze-osgb' ? b.district === 'Gebze' : p.slug === 'dilovasi-osgb' ? b.district === 'Dilovası' : true
-          ).map(branchNode)
-        : []),
-    ],
+    schema: p.faqPage && p.faq ? [faqNode(p.faq)] : [],
     priority: ['iletisim', 'hakkimizda', 'gebze-osgb', 'kocaeli-osgb'].includes(p.slug) ? '0.8' : '0.7',
   };
 
   const body = p.faqPage && p.faq
     ? `  <section class="content-section">\n${faqList(p.faq)}\n  </section>` +
-      (p.blocks ? '\n\n' + renderBlocks(p.blocks) : '')
-    : renderBlocks(p.blocks || []);
+      (p.blocks ? '\n\n' + renderBlocks(p.blocks, page.path) : '')
+    : renderBlocks(p.blocks || [], page.path);
 
   generated.push({ page, html: renderPage(page, body) });
 }
@@ -832,9 +747,9 @@ export const MANUAL_PAGES: PageSpec[] = [
     path: '/',
     title: 'AKER OSGB | Gebze ve Kocaeli Ortak Sağlık ve Güvenlik Birimi',
     description:
-      'Gebze, Dilovası ve Kocaeli’de OSGB hizmeti. İş güvenliği uzmanı, işyeri hekimi, risk değerlendirmesi ve İSG eğitimleri. 2012’den beri, beş şubeyle.',
+      'Gebze, Dilovası ve Kocaeli’de OSGB hizmeti. İş güvenliği uzmanı, işyeri hekimi, risk değerlendirmesi ve İSG eğitimleri. 2012’den beri.',
     breadcrumb: [{ href: '/', label: 'Ana Sayfa' }],
-    schema: [...BRANCHES.map(branchNode), ...SERVICES.map(serviceNode)],
+    schema: SERVICES.map(serviceNode),
     priority: '1.0',
   },
   {
@@ -917,6 +832,18 @@ for (const page of MANUAL_PAGES) {
   src = src.replace(/\/js\/script\.js(\?v=[0-9a-f]+)?"/g, `${assetUrl('js/script.js')}"`);
   writeFileSync(file, src, 'utf8');
   console.log(`güncellendi  ${page.file}`);
+}
+
+// Yönetim paneli: betik ve stil adreslerine içerik özeti eklenir;
+// yoksa tarayıcı bir gün boyunca eski panel kodunu kullanır.
+{
+  const file = path.join(ROOT, 'admin.html');
+  let src = readFileSync(file, 'utf8');
+  for (const rel of ['js/admin.js', 'css/admin.css', 'css/style.css']) {
+    src = src.replace(new RegExp(`/${rel.replace('.', '\\.')}(\\?v=[0-9a-f]+)?"`, 'g'), `${assetUrl(rel)}"`);
+  }
+  writeFileSync(file, src, 'utf8');
+  console.log('güncellendi  admin.html');
 }
 
 // ---------------------------------------------------------

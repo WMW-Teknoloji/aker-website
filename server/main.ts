@@ -24,6 +24,7 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 
+import { DEFAULT_DATA } from '../src/cms-data.ts';
 import { D1VeriTabani } from './d1.ts';
 import { R2Deposu } from './r2.ts';
 import { onbellekKur } from './onbellek.ts';
@@ -117,15 +118,18 @@ async function ortamiHazirla(): Promise<{ env: Env; port: number }> {
   const ilkKurulum = !existsSync(dbDosyasi);
   const db = new D1VeriTabani(dbDosyasi);
 
-  // Veri tabanı yoksa şema ve tohum verisi yüklenir; sunucu boş içerikle açılmaz.
+  // Şema her açılışta uygulanır: tablolar `IF NOT EXISTS` ile kurulur,
+  // mevcut veri değişmez, sonradan eklenen tablolar da oluşur.
+  await db.exec(await readFile(path.join(KOK, 'db', 'schema.sql'), 'utf8'));
+
+  // Veri tabanı yoksa tohum verisi yüklenir; sunucu boş içerikle açılmaz.
   if (ilkKurulum) {
-    for (const ad of ['schema.sql', 'seed.sql']) {
-      const yol = path.join(KOK, 'db', ad);
-      if (!existsSync(yol)) continue;
-      await db.exec(await readFile(yol, 'utf8'));
-    }
+    const tohum = path.join(KOK, 'db', 'seed.sql');
+    if (existsSync(tohum)) await db.exec(await readFile(tohum, 'utf8'));
     console.log(`veri tabani olusturuldu: ${dbDosyasi}`);
   }
+
+  await subeleriTohumla(db);
 
   const env = {
     DB: db,
@@ -139,6 +143,31 @@ async function ortamiHazirla(): Promise<{ env: Env; port: number }> {
   } as unknown as Env;
 
   return { env, port: Number(oku('PORT')) || 8788 };
+}
+
+/**
+ * Şube tablosu sonradan eklendi. Varsayılan şubeler her veri
+ * tabanına yalnızca bir kez yazılır; işaret `meta` tablosunda
+ * tutulur, böylece panelden silinen şube yeniden başlatmada geri
+ * gelmez.
+ */
+async function subeleriTohumla(db: D1VeriTabani): Promise<void> {
+  const isaret = await db.prepare("SELECT deger FROM meta WHERE anahtar = 'tohum-subeler'").first();
+  if (isaret) return;
+
+  const sorgular = DEFAULT_DATA.branches.map((b, sira) =>
+    db
+      .prepare(
+        'INSERT OR IGNORE INTO branches (id, sira, name, street, district, city, postalCode, maps) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      )
+      .bind(b.id, sira, b.name, b.street, b.district, b.city, b.postalCode, b.maps),
+  );
+  sorgular.push(db.prepare("INSERT OR IGNORE INTO meta (anahtar, deger) VALUES ('tohum-subeler', '1')"));
+  // Sayfa önbelleği yeni şube bölgeleriyle yeniden üretilsin.
+  sorgular.push(db.prepare("UPDATE meta SET deger = CAST(CAST(deger AS INTEGER) + 1 AS TEXT) WHERE anahtar = 'surum'"));
+
+  await db.batch(sorgular);
+  console.log(`subeler tohumlandi (${DEFAULT_DATA.branches.length} kayit)`);
 }
 
 // ---------------------------------------------------------

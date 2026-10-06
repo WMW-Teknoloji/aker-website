@@ -13,12 +13,16 @@ export type CollectionName = keyof CmsData;
 
 export interface FieldSpec {
   name: string;
+  /** Hata mesajlarında görünen ad; yoksa alan adı kullanılır. */
+  label?: string;
   /** Kabul edilen en fazla karakter sayısı. */
   max: number;
   /** Boş bırakılabilir mi? */
   optional?: boolean;
   /** Değer bir görsel yolu mu? (biçim denetimi yapılır) */
   isPath?: boolean;
+  /** Değer bir https bağlantısı mı? (boşsa denetlenmez) */
+  isUrl?: boolean;
 }
 
 export interface CollectionSpec {
@@ -81,6 +85,18 @@ export const COLLECTIONS: Record<CollectionName, CollectionSpec> = {
       { name: 'photo', max: 500, isPath: true, optional: true },
     ],
   },
+  branches: {
+    table: 'branches',
+    label: 'Şubeler',
+    fields: [
+      { name: 'name', label: 'Şube adı', max: 120 },
+      { name: 'street', label: 'Adres', max: 300 },
+      { name: 'district', label: 'İlçe', max: 60 },
+      { name: 'city', label: 'İl', max: 60 },
+      { name: 'postalCode', label: 'Posta kodu', max: 10, optional: true },
+      { name: 'maps', label: 'Harita bağlantısı', max: 1000, isUrl: true, optional: true },
+    ],
+  },
 };
 
 export function isCollection(value: string): value is CollectionName {
@@ -104,6 +120,7 @@ export async function loadAll(env: Env): Promise<CmsData> {
     env.DB.prepare('SELECT id, title, image FROM documents ORDER BY sira ASC, id ASC'),
     env.DB.prepare('SELECT id, title, text, image, link FROM news ORDER BY sira ASC, id ASC'),
     env.DB.prepare('SELECT id, name, role, photo FROM team ORDER BY sira ASC, id ASC'),
+    env.DB.prepare('SELECT id, name, street, district, city, postalCode, maps FROM branches ORDER BY sira ASC, id ASC'),
   ]);
 
   const satirlar = <T>(index: number): T[] => (sonuclar[index]?.results ?? []) as T[];
@@ -115,6 +132,7 @@ export async function loadAll(env: Env): Promise<CmsData> {
     documents: satirlar<CmsData['documents'][number]>(3),
     news: satirlar<CmsData['news'][number]>(4),
     team: satirlar<CmsData['team'][number]>(5),
+    branches: satirlar<CmsData['branches'][number]>(6),
   };
 }
 

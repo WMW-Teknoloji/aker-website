@@ -16,14 +16,19 @@
 
 import { loadAll, contentVersion } from './_lib/content.ts';
 import {
+  renderBranchCards,
   renderCareerCards,
   renderCareerList,
   renderClients,
+  renderContactLocations,
   renderDocuments,
+  renderFooterBranches,
   renderJobDetail,
+  renderKurumSemasi,
   renderNews,
   renderSlides,
   renderTeam,
+  sayfaSubeleri,
 } from '../src/render.ts';
 import type { Ctx } from './_lib/env.ts';
 import type { CmsData } from '../src/content-types.ts';
@@ -37,7 +42,11 @@ type Bolge =
   | 'kariyer-liste'
   | 'ekip'
   | 'belgeler'
-  | 'ilan-detay';
+  | 'ilan-detay'
+  | 'sube-alt'
+  | 'sube-kart'
+  | 'sube-iletisim'
+  | 'kurum-sema';
 
 /** Hangi sayfada hangi bölgelerin doldurulacağı. */
 const SAYFA_BOLGELERI: Record<string, Bolge[]> = {
@@ -48,13 +57,28 @@ const SAYFA_BOLGELERI: Record<string, Bolge[]> = {
   '/isbasvuru': ['ilan-detay'],
 };
 
+/**
+ * Şube bilgisi her sayfanın alt kısmında ve firma şemasında var;
+ * bu bölgeler bütün sayfalarda denenir. İşareti olmayan sayfada
+ * değişiklik yapılmaz.
+ */
+const SUBE_BOLGELERI: Bolge[] = ['sube-alt', 'sube-kart', 'sube-iletisim', 'kurum-sema'];
+
+/** İçerik enjeksiyonu yapılmayan yollar. */
+const ATLANAN_YOLLAR = /^\/(admin|api)(\/|$)/;
+
 function normalizeYol(pathname: string): string {
   if (pathname === '' || pathname === '/index.html') return '/';
   const temiz = pathname.replace(/\.html$/, '');
   return temiz.length > 1 && temiz.endsWith('/') ? temiz.slice(0, -1) : temiz;
 }
 
-function icerikUret(bolge: Bolge, data: CmsData, careerId: string | null): string | null {
+function icerikUret(bolge: Bolge, data: CmsData, careerId: string | null, yol: string): string | null {
+  // Şube tablosu boşsa (henüz tohumlanmamış) derleme anındaki liste kalır.
+  if (bolge.startsWith('sube-') || bolge === 'kurum-sema') {
+    if (data.branches.length === 0) return null;
+  }
+
   switch (bolge) {
     case 'hero-slaytlar':
       return data.slides.length ? renderSlides(data.slides) : null;
@@ -80,6 +104,14 @@ function icerikUret(bolge: Bolge, data: CmsData, careerId: string | null): strin
       const ilan = data.careers.find((c) => c.id === careerId) ?? data.careers[0];
       return ilan ? renderJobDetail(ilan) : null;
     }
+    case 'sube-alt':
+      return renderFooterBranches(data.branches);
+    case 'sube-kart':
+      return renderBranchCards(sayfaSubeleri(yol, data.branches));
+    case 'sube-iletisim':
+      return renderContactLocations(data.branches);
+    case 'kurum-sema':
+      return renderKurumSemasi(yol, data.branches);
     default:
       return null;
   }
@@ -101,8 +133,8 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
   const url = new URL(request.url);
   const yol = normalizeYol(url.pathname);
 
-  const bolgeler = SAYFA_BOLGELERI[yol];
-  if (!bolgeler || (request.method !== 'GET' && request.method !== 'HEAD')) return next();
+  if ((request.method !== 'GET' && request.method !== 'HEAD') || ATLANAN_YOLLAR.test(yol)) return next();
+  const bolgeler = [...(SAYFA_BOLGELERI[yol] ?? []), ...SUBE_BOLGELERI];
 
   const response = await next();
   const tur = response.headers.get('Content-Type') ?? '';
@@ -111,7 +143,9 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
   // Veri tabanı bağlanamazsa statik içerik olduğu gibi servis edilir.
   if (!env.DB) return response;
 
-  const careerId = url.searchParams.get('id');
+  // `?id=` yalnız ilan sayfasında anlamlı; diğer sayfalarda önbellek
+  // anahtarına girmesin (rastgele değerlerle önbellek şişirilemesin).
+  const careerId = yol === '/isbasvuru' ? url.searchParams.get('id') : null;
 
   try {
     const surum = await contentVersion(env);
@@ -141,7 +175,7 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
     let html = await response.text();
 
     for (const bolge of bolgeler) {
-      const icerik = icerikUret(bolge, data, careerId);
+      const icerik = icerikUret(bolge, data, careerId, yol);
       if (icerik !== null) html = bolgeyiDegistir(html, bolge, icerik);
     }
 

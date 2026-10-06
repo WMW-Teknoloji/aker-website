@@ -18,6 +18,10 @@ interface FieldConfig {
   key: string;
   label: string;
   type?: FieldType;
+  /** Yeni kayıt formunda alanın başlangıç değeri. */
+  varsayilan?: string;
+  /** Alanın altında görünen kısa açıklama. */
+  ipucu?: string;
 }
 
 interface ColumnConfig {
@@ -31,6 +35,8 @@ interface CollectionConfig {
   label: string;
   fields: FieldConfig[];
   columns: ColumnConfig[];
+  /** Tablonun üstünde görünen açıklama. */
+  aciklama?: string;
 }
 
 interface Kayit {
@@ -120,6 +126,30 @@ const COLLECTIONS: Record<string, CollectionConfig> = {
       { key: 'photo', label: '', type: 'image' },
       { key: 'name', label: 'Ad Soyad' },
       { key: 'role', label: 'Unvan' },
+    ],
+  },
+  branches: {
+    label: 'Şubeler',
+    aciklama:
+      'Şubeler sitenin alt kısmında, ana sayfadaki iletişim kutusunda, Şubelerimiz ve İletişim sayfalarında görünür. ' +
+      'Gebze ve Dilovası sayfaları yalnızca kendi ilçesindeki şubeleri gösterir. Listedeki ilk şube merkez kabul edilir.',
+    fields: [
+      { key: 'name', label: 'Şube adı', type: 'text', ipucu: 'Örnek: AKER OSGB TOSB Şubesi' },
+      { key: 'street', label: 'Adres', type: 'text', ipucu: 'Mahalle, cadde/sokak ve numara. Örnek: TOSB Otomotiv Mah. 1. Cd. No: 10/1-B' },
+      { key: 'district', label: 'İlçe', type: 'text', ipucu: 'Örnek: Çayırova' },
+      { key: 'city', label: 'İl', type: 'text', varsayilan: 'Kocaeli' },
+      { key: 'postalCode', label: 'Posta kodu', type: 'text', ipucu: 'Bilinmiyorsa boş bırakılabilir.' },
+      {
+        key: 'maps',
+        label: 'Harita bağlantısı',
+        type: 'text',
+        ipucu: 'Boş bırakılırsa adresten otomatik oluşturulur. Google Haritalar’dan kopyalanan https:// bağlantısı da yapıştırılabilir.',
+      },
+    ],
+    columns: [
+      { key: 'name', label: 'Şube' },
+      { key: 'street', label: 'Adres' },
+      { key: 'district', label: 'İlçe' },
     ],
   },
 };
@@ -316,7 +346,8 @@ async function renderSection(): Promise<void> {
 
 function renderTable(content: HTMLElement, config: CollectionConfig): void {
   const items = state.kayitlar;
-  const countHtml = `<div class="admin-record-count">Toplam Kayıt Sayısı : ${items.length}</div>`;
+  const aciklamaHtml = config.aciklama ? `<p class="admin-section-note">${escapeHtml(config.aciklama)}</p>` : '';
+  const countHtml = `${aciklamaHtml}<div class="admin-record-count">Toplam Kayıt Sayısı : ${items.length}</div>`;
 
   if (items.length === 0) {
     content.innerHTML = `${countHtml}<div class="admin-empty">Henüz içerik eklenmedi.</div>`;
@@ -620,7 +651,8 @@ function openModal(id: string | null): void {
 
   form.innerHTML = config.fields
     .map((field) => {
-      const value = item?.[field.key] ?? '';
+      const value = item ? (item[field.key] ?? '') : (field.varsayilan ?? '');
+      const ipucu = field.ipucu ? `<div class="admin-field-ipucu">${escapeHtml(field.ipucu)}</div>` : '';
 
       if (field.type === 'textarea') {
         return `<div class="admin-field"><label for="alan-${field.key}">${escapeHtml(field.label)}</label><textarea id="alan-${field.key}" name="${field.key}">${escapeHtml(value)}</textarea></div>`;
@@ -639,7 +671,7 @@ function openModal(id: string | null): void {
         );
       }
 
-      return `<div class="admin-field"><label for="alan-${field.key}">${escapeHtml(field.label)}</label><input type="text" id="alan-${field.key}" name="${field.key}" value="${escapeAttr(value)}"></div>`;
+      return `<div class="admin-field"><label for="alan-${field.key}">${escapeHtml(field.label)}</label><input type="text" id="alan-${field.key}" name="${field.key}" value="${escapeAttr(value)}">${ipucu}</div>`;
     })
     .join('');
 

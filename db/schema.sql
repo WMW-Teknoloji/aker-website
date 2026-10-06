@@ -63,6 +63,20 @@ CREATE TABLE IF NOT EXISTS team (
   guncellendi  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Şubeler. Listedeki ilk şube merkezdir (firma şemasının adresi).
+-- `maps` boşsa harita bağlantısı adresten üretilir.
+CREATE TABLE IF NOT EXISTS branches (
+  id           TEXT PRIMARY KEY,
+  sira         INTEGER NOT NULL DEFAULT 0,
+  name         TEXT NOT NULL,
+  street       TEXT NOT NULL,
+  district     TEXT NOT NULL,
+  city         TEXT NOT NULL,
+  postalCode   TEXT NOT NULL DEFAULT '',
+  maps         TEXT NOT NULL DEFAULT '',
+  guncellendi  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- İş başvuruları. Özgeçmiş dosyası R2'de saklanır, burada yalnızca
 -- anahtarı tutulur.
 CREATE TABLE IF NOT EXISTS applications (

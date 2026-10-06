@@ -32,15 +32,19 @@ export function validateItem(spec: CollectionSpec, body: unknown): ValidationRes
   for (const field of spec.fields) {
     const raw = input[field.name];
     const value = raw === undefined || raw === null ? '' : String(raw).trim();
+    const ad = field.label ?? field.name;
 
     if (!field.optional && value === '') {
-      return { ok: false, hata: `"${field.name}" alanı boş bırakılamaz.` };
+      return { ok: false, hata: `"${ad}" alanı boş bırakılamaz.` };
     }
     if (value.length > field.max) {
-      return { ok: false, hata: `"${field.name}" alanı en fazla ${field.max} karakter olabilir.` };
+      return { ok: false, hata: `"${ad}" alanı en fazla ${field.max} karakter olabilir.` };
     }
     if (field.isPath && !isAllowedPath(value)) {
-      return { ok: false, hata: `"${field.name}" alanı geçerli bir görsel adresi değil.` };
+      return { ok: false, hata: `"${ad}" alanı geçerli bir görsel adresi değil.` };
+    }
+    if (field.isUrl && value !== '' && !/^https:\/\/[^\s"'<>]+$/.test(value)) {
+      return { ok: false, hata: `"${ad}" alanı https:// ile başlayan bir bağlantı olmalı.` };
     }
 
     degerler[field.name] = value;

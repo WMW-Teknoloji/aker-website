@@ -8,8 +8,9 @@
 // yalnızca burada tanımlanır.
 // =========================================================
 
-import type { Career, CertificateDoc, Client, NewsItem, Slide, TeamMember } from './content-types.ts';
+import type { Branch, Career, CertificateDoc, Client, NewsItem, Slide, TeamMember } from './content-types.ts';
 import { IMAGE_SIZES } from './image-sizes.gen.ts';
+import { SITE } from './site-bilgi.ts';
 
 export function esc(value: unknown): string {
   return String(value ?? '')
@@ -144,4 +145,170 @@ export function renderJobDetail(career: Career): string {
 
     <h1 class="job-title">${esc(career.title)}</h1>
     <p class="job-text">${esc(career.text)}</p>`;
+}
+
+// ---------------------------------------------------------
+// Şubeler
+// ---------------------------------------------------------
+// Şube adresleri dört yerde görünür: her sayfanın alt kısmı,
+// ana sayfadaki iletişim kutusu, şube kartları ve firma bilgisi
+// (JSON-LD). Listedeki ilk şube merkez kabul edilir.
+
+/** İlçe sayfaları yalnızca kendi ilçesindeki şubeleri gösterir. */
+const ILCE_SAYFALARI: Record<string, string> = {
+  '/gebze-osgb': 'Gebze',
+  '/dilovasi-osgb': 'Dilovası',
+};
+
+/** Şubelerin LocalBusiness şemasıyla işaretlendiği sayfalar. */
+const SUBE_SEMASI_SAYFALARI = new Set(['/', '/subelerimiz', '/iletisim', '/gebze-osgb', '/dilovasi-osgb', '/kocaeli-osgb']);
+
+const ICON_PIN =
+  '<svg viewBox="0 0 24 24" class="location-svg" aria-hidden="true"><path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>';
+
+const tamUrl = (yol: string): string => SITE.origin + (yol.startsWith('/') ? yol : `/${yol}`);
+
+/** "Sokak No: 1, 41400 Gebze/Kocaeli"; posta kodu boşsa atlanır. */
+export function tamAdres(b: Branch): string {
+  const posta = b.postalCode?.trim();
+  return `${b.street}, ${posta ? `${posta} ` : ''}${b.district}/${b.city}`;
+}
+
+/** Kayıtlı harita adresi; boşsa adresten bir Google Haritalar araması üretilir. */
+export function haritaAdresi(b: Branch): string {
+  const kayitli = b.maps?.trim();
+  if (kayitli) return kayitli;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${b.street} ${b.district}/${b.city}`)}`;
+}
+
+/** Sayfada gösterilecek şubeler (ilçe sayfalarında süzülür). */
+export function sayfaSubeleri(yol: string, subeler: Branch[]): Branch[] {
+  const ilce = ILCE_SAYFALARI[yol];
+  if (!ilce) return subeler;
+  const aranan = ilce.toLocaleLowerCase('tr');
+  return subeler.filter((b) => b.district.trim().toLocaleLowerCase('tr') === aranan);
+}
+
+/** Alt bilgideki şube listesi. */
+export function renderFooterBranches(subeler: Branch[]): string {
+  return subeler
+    .map(
+      (b) =>
+        `        <li><a href="${esc(haritaAdresi(b))}" target="_blank" rel="noopener"><strong>${esc(b.name)}</strong><br>${esc(tamAdres(b))}</a></li>`,
+    )
+    .join('\n');
+}
+
+/** Şubelerimiz, İletişim ve ilçe sayfalarındaki şube kartları. */
+export function renderBranchCards(subeler: Branch[]): string {
+  return subeler
+    .map(
+      (b) => `      <li class="branch-card">
+        <h3 class="branch-name">${esc(b.name)}</h3>
+        <address class="branch-address">${esc(tamAdres(b))}</address>
+        <div class="branch-links">
+          <a href="${esc(haritaAdresi(b))}" target="_blank" rel="noopener">Haritada aç</a>
+          <a href="${SITE.phoneHref}">${SITE.phone}</a>
+        </div>
+      </li>`,
+    )
+    .join('\n');
+}
+
+/** Ana sayfadaki iletişim kutusunun şube listesi. */
+export function renderContactLocations(subeler: Branch[]): string {
+  return subeler
+    .map(
+      (b) => `        <a class="location-item" href="${esc(haritaAdresi(b))}" target="_blank" rel="noopener">
+          <div class="location-icon">${ICON_PIN}</div>
+          <div class="location-text">
+            <div class="location-name">${esc(b.name)}</div>
+            <div class="location-address">${esc(tamAdres(b))}</div>
+          </div>
+        </a>`,
+    )
+    .join('\n');
+}
+
+function organizationNode(merkez: Branch | undefined): Record<string, unknown> {
+  const logo = IMAGE_SIZES['aker-osgb-logo.webp'];
+  return {
+    '@type': 'Organization',
+    '@id': `${SITE.origin}/#organization`,
+    name: SITE.name,
+    legalName: SITE.legalName,
+    alternateName: SITE.fullName,
+    url: SITE.origin + '/',
+    logo: {
+      '@type': 'ImageObject',
+      url: tamUrl('/img/aker-osgb-logo.webp'),
+      width: logo?.width,
+      height: logo?.height,
+    },
+    foundingDate: SITE.founded,
+    email: SITE.email,
+    telephone: SITE.phone,
+    sameAs: SITE.social,
+    ...(merkez
+      ? {
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: merkez.street,
+            addressLocality: merkez.district,
+            addressRegion: merkez.city,
+            ...(merkez.postalCode?.trim() ? { postalCode: merkez.postalCode.trim() } : {}),
+            addressCountry: 'TR',
+          },
+        }
+      : {}),
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: SITE.phone,
+      contactType: 'customer service',
+      email: SITE.email,
+      areaServed: 'TR',
+      availableLanguage: ['Turkish'],
+    },
+  };
+}
+
+function branchNode(b: Branch): Record<string, unknown> {
+  return {
+    '@type': 'LocalBusiness',
+    '@id': `${SITE.origin}/subelerimiz#${b.id}`,
+    name: b.name,
+    parentOrganization: { '@id': `${SITE.origin}/#organization` },
+    url: `${SITE.origin}/subelerimiz`,
+    telephone: SITE.phone,
+    email: SITE.email,
+    image: tamUrl('/img/aker-osgb-logo.webp'),
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: b.street,
+      addressLocality: b.district,
+      addressRegion: b.city,
+      ...(b.postalCode?.trim() ? { postalCode: b.postalCode.trim() } : {}),
+      addressCountry: 'TR',
+    },
+    hasMap: haritaAdresi(b),
+    areaServed: [
+      { '@type': 'AdministrativeArea', name: 'Kocaeli' },
+      { '@type': 'AdministrativeArea', name: b.district },
+    ],
+  };
+}
+
+/**
+ * Firma bilgisi ve sayfanın şubeleri (JSON-LD). Sayfanın diğer
+ * şemalarından ayrı bir betik etiketidir; şubeler panelden
+ * değiştiğinde yalnızca bu etiket yeniden üretilir.
+ */
+export function renderKurumSemasi(yol: string, subeler: Branch[]): string {
+  const graph = [
+    organizationNode(subeler[0]),
+    ...(SUBE_SEMASI_SAYFALARI.has(yol) ? sayfaSubeleri(yol, subeler).map(branchNode) : []),
+  ];
+  // Panelden gelen metin "</script>" içerse bile etiketi kapatamasın.
+  const json = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }, null, 2).replace(/</g, '\\u003c');
+  return `<script type="application/ld+json">\n${json}\n</script>`;
 }

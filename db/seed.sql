@@ -1,4 +1,4 @@
-﻿-- Bu dosya `node tools/seed.ts` ile üretilir. Elle düzenlemeyin.
+-- Bu dosya `node tools/seed.ts` ile üretilir. Elle düzenlemeyin.
 -- Yalnızca eksik kayıtları ekler; mevcut içeriği değiştirmez.
 
 -- slides (3 kayıt)
@@ -100,4 +100,11 @@ INSERT OR IGNORE INTO team (id, sira, name, role, photo) VALUES ('team-8', 7, 'N
 INSERT OR IGNORE INTO team (id, sira, name, role, photo) VALUES ('team-9', 8, 'AHMET HAKAN YEŞİL', 'SATIŞ PAZARLAMA MÜDÜRÜ', '/img/team-9.webp');
 INSERT OR IGNORE INTO team (id, sira, name, role, photo) VALUES ('team-10', 9, 'ÖMER DEMİRCAN', 'BİLGİ İŞLEM SORUMLUSU', '/img/team-10.webp');
 INSERT OR IGNORE INTO team (id, sira, name, role, photo) VALUES ('team-11', 10, 'SERAP KAYA', 'MUHASEBE SORUMLUSU', '/img/team-11.webp');
+
+-- branches (5 kayıt)
+INSERT OR IGNORE INTO branches (id, sira, name, street, district, city, postalCode, maps) VALUES ('merkez', 0, 'AKER OSGB Merkez Şube', 'Osman Yılmaz Mah. İstanbul Cad. No: 30 Kardem Plaza Kat: 6', 'Gebze', 'Kocaeli', '41400', 'https://www.google.com/maps/search/?api=1&query=Osman%20Y%C4%B1lmaz%20Mah.%20%C4%B0stanbul%20Cad.%20No%3A%2030%20Kardem%20Plaza%20Kat%3A%206%20Gebze%2FKocaeli');
+INSERT OR IGNORE INTO branches (id, sira, name, street, district, city, postalCode, maps) VALUES ('sultanorhan', 1, 'AKER OSGB Sultanorhan Şubesi', 'Sultan Orhan Mah. İlyasbey Cd. No: 30/B', 'Gebze', 'Kocaeli', '41400', 'https://www.google.com/maps/search/?api=1&query=Sultan%20Orhan%2C%20%C4%B0lyasbey%20Cd.%2030%2FB%2C%2041400%20Gebze%2FKocaeli');
+INSERT OR IGNORE INTO branches (id, sira, name, street, district, city, postalCode, maps) VALUES ('guzeller', 2, 'AKER OSGB Güzeller OSB Şubesi', 'Aşık Veysel Sk. No: 1/1 Güzeller OSB Yönetim Binası', 'Gebze', 'Kocaeli', '41400', 'https://www.google.com/maps/search/?api=1&query=A%C5%9F%C4%B1k%20Veysel%20Sk.%20No%3A%201%2F1%20G%C3%BCzeller%20OSB%20Y%C3%B6netim%20Binas%C4%B1%20Gebze%2FKocaeli');
+INSERT OR IGNORE INTO branches (id, sira, name, street, district, city, postalCode, maps) VALUES ('mermerciler', 3, 'AKER OSGB Mermerciler Şubesi', 'Köseler Mah. 3. Cadde No: 19/C', 'Dilovası', 'Kocaeli', '41455', 'https://www.google.com/maps/search/?api=1&query=K%C3%B6seler%20Mah.%203.%20Cadde%20No%3A%2019%2FC%20Dilovas%C4%B1%2FKocaeli');
+INSERT OR IGNORE INTO branches (id, sira, name, street, district, city, postalCode, maps) VALUES ('tosb', 4, 'AKER OSGB TOSB Şubesi', 'TOSB Otomotiv Mah. 1. Cd. No: 10/1-B', 'Çayırova', 'Kocaeli', '41420', 'https://www.google.com/maps/search/?api=1&query=TOSB%20Otomotiv%20Mah.%201.%20Cd.%20No%3A%2010%2F1-B%20%C3%87ay%C4%B1rova%2FKocaeli');
 

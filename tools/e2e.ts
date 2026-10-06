@@ -65,6 +65,129 @@ function sayac(html: string, desen: RegExp): number {
   return (html.match(desen) ?? []).length;
 }
 
+/** Sayfadaki JSON-LD etiketlerini çözer; bozuk etiket varsa null döner. */
+function semalar(html: string): Record<string, unknown>[] | null {
+  const dugumler: Record<string, unknown>[] = [];
+  for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
+    try {
+      const veri = JSON.parse(m[1] ?? '') as { '@graph'?: Record<string, unknown>[] };
+      dugumler.push(...(veri['@graph'] ?? []));
+    } catch {
+      return null;
+    }
+  }
+  return dugumler;
+}
+
+const subeKarti = /class="branch-name"/g;
+const altSube = /<li><a href="https:\/\/www\.google\.com\/maps[^"]*" target="_blank" rel="noopener"><strong>/g;
+
+async function subeleriSina(): Promise<void> {
+  console.log('\nŞubeler');
+  const JSON_BASLIK = { 'Content-Type': 'application/json' };
+
+  const subeler = await iste('/subelerimiz');
+  sonuc('şubeler sayfasında 5 şube kartı', sayac(subeler.govde, subeKarti) === 5, String(sayac(subeler.govde, subeKarti)));
+  const kvkk = await iste('/kvkk');
+  sonuc('alt bilgide 5 şube (her sayfada)', sayac(kvkk.govde, altSube) === 5, String(sayac(kvkk.govde, altSube)));
+  sonuc('alt bilgi veri tabanından geliyor', kvkk.headers.get('x-icerik-surum') !== null);
+  const gebze = await iste('/gebze-osgb');
+  sonuc('Gebze sayfası yalnız Gebze şubelerini gösteriyor', sayac(gebze.govde, subeKarti) === 3, String(sayac(gebze.govde, subeKarti)));
+
+  const liste = await iste('/api/admin/branches');
+  const kayitlar = liste.json['kayitlar'] as { id: string }[];
+  sonuc('panelde 5 şube kaydı', Array.isArray(kayitlar) && kayitlar.length === 5, String(kayitlar?.length));
+
+  const kotuHarita = await iste('/api/admin/branches', {
+    method: 'POST',
+    headers: JSON_BASLIK,
+    body: JSON.stringify({ name: 'X', street: 'Y', district: 'Gebze', city: 'Kocaeli', maps: 'http://ornek.com' }),
+  });
+  sonuc(
+    'https olmayan harita bağlantısı reddedildi (Türkçe mesaj)',
+    kotuHarita.status === 422 && String(kotuHarita.json['error']).includes('Harita bağlantısı'),
+    `${kotuHarita.status} ${String(kotuHarita.json['error'])}`,
+  );
+
+  const eksik = await iste('/api/admin/branches', {
+    method: 'POST',
+    headers: JSON_BASLIK,
+    body: JSON.stringify({ name: 'X', street: '', district: 'Gebze', city: 'Kocaeli' }),
+  });
+  sonuc('adres boşsa 422', eksik.status === 422 && String(eksik.json['error']).includes('Adres'), String(eksik.json['error']));
+
+  const ekle = await iste('/api/admin/branches', {
+    method: 'POST',
+    headers: JSON_BASLIK,
+    body: JSON.stringify({
+      name: 'SINAMA SUBESI',
+      street: 'Deneme Mah. 1. Sk. No: 1',
+      district: 'gebze',
+      city: 'Kocaeli',
+      postalCode: '',
+      maps: '',
+    }),
+  });
+  const subeId = String(ekle.json['id'] ?? '');
+  sonuc('yeni şube eklendi', ekle.status === 200 && subeId !== '', String(ekle.status));
+
+  const subelerYeni = await iste('/subelerimiz');
+  sonuc('yeni şube şubeler sayfasında', sayac(subelerYeni.govde, subeKarti) === 6 && subelerYeni.govde.includes('SINAMA SUBESI'));
+  sonuc('posta kodu boşken adres düzgün', subelerYeni.govde.includes('Deneme Mah. 1. Sk. No: 1, gebze/Kocaeli'));
+  sonuc(
+    'harita bağlantısı adresten üretildi',
+    subelerYeni.govde.includes('https://www.google.com/maps/search/?api=1&amp;query=Deneme%20Mah.%201.%20Sk.%20No%3A%201%20gebze%2FKocaeli'),
+  );
+  const semaYeni = semalar(subelerYeni.govde);
+  sonuc('JSON-LD geçerli ve yeni şubeyi içeriyor', semaYeni !== null && semaYeni.some((d) => d['name'] === 'SINAMA SUBESI'));
+
+  const kvkkYeni = await iste('/kvkk');
+  sonuc('yeni şube başka sayfanın alt bilgisinde', sayac(kvkkYeni.govde, altSube) === 6 && kvkkYeni.govde.includes('SINAMA SUBESI'));
+  const gebzeYeni = await iste('/gebze-osgb');
+  sonuc('ilçe büyük/küçük harf farkıyla eşleşti (Gebze sayfası 4)', sayac(gebzeYeni.govde, subeKarti) === 4, String(sayac(gebzeYeni.govde, subeKarti)));
+  const dilovasi = await iste('/dilovasi-osgb');
+  sonuc('Dilovası sayfası etkilenmedi', sayac(dilovasi.govde, subeKarti) === 1);
+  const anaYeni = await iste('/');
+  sonuc('ana sayfa iletişim kutusunda yeni şube', sayac(anaYeni.govde, /class="location-name"/g) === 6);
+
+  // Panelden gelen metin HTML ve JSON-LD etiketini kıramaz.
+  const kotuAd = 'SINAMA <b>KALIN</b></script><script>alert(1)</script>';
+  const zararli = await iste(`/api/admin/branches/${subeId}`, {
+    method: 'PUT',
+    headers: JSON_BASLIK,
+    body: JSON.stringify({ name: kotuAd, street: 'Deneme Mah. 1. Sk. No: 1', district: 'Gebze', city: 'Kocaeli', postalCode: '41400', maps: '' }),
+  });
+  sonuc('şube güncellendi', zararli.status === 200, String(zararli.status));
+  const kacisli = await iste('/subelerimiz');
+  sonuc('şube adındaki HTML kaçışlı basıldı', !kacisli.govde.includes('<b>KALIN</b>') && kacisli.govde.includes('&lt;b&gt;KALIN'));
+  const semaKacisli = semalar(kacisli.govde);
+  sonuc(
+    'JSON-LD etiketi kapatılamadı',
+    !kacisli.govde.includes('<script>alert(1)') && semaKacisli !== null && semaKacisli.some((d) => d['name'] === kotuAd),
+  );
+
+  // İlk sıradaki şube merkez kabul edilir.
+  const idler = ((await iste('/api/admin/branches')).json['kayitlar'] as { id: string }[]).map((k) => k.id);
+  await iste('/api/admin/branches/sira', {
+    method: 'POST',
+    headers: JSON_BASLIK,
+    body: JSON.stringify({ sira: [subeId, ...idler.filter((id) => id !== subeId)] }),
+  });
+  const merkezSema = semalar((await iste('/kvkk')).govde);
+  const kurum = merkezSema?.find((d) => d['@type'] === 'Organization') as { address?: { streetAddress?: string } } | undefined;
+  sonuc('ilk sıradaki şube firma adresi oldu', kurum?.address?.streetAddress === 'Deneme Mah. 1. Sk. No: 1', kurum?.address?.streetAddress);
+  await iste('/api/admin/branches/sira', { method: 'POST', headers: JSON_BASLIK, body: JSON.stringify({ sira: idler }) });
+
+  const sil = await iste(`/api/admin/branches/${subeId}`, { method: 'DELETE' });
+  sonuc('sınama şubesi silindi', sil.status === 200, String(sil.status));
+  const subelerSon = await iste('/subelerimiz');
+  sonuc('şubeler sayfası yeniden 5', sayac(subelerSon.govde, subeKarti) === 5 && !subelerSon.govde.includes('SINAMA'));
+  const merkezSon = semalar(subelerSon.govde)?.find((d) => d['@type'] === 'Organization') as
+    | { address?: { streetAddress?: string } }
+    | undefined;
+  sonuc('firma adresi yeniden merkez şube', merkezSon?.address?.streetAddress?.startsWith('Osman Yılmaz') === true);
+}
+
 async function calistir(): Promise<void> {
   console.log(`\nSunucu: ${KOK}\n`);
 
@@ -169,6 +292,9 @@ async function calistir(): Promise<void> {
   const ekipSirali = await iste('/ekibimiz');
   const ilkIsim = /class="team-name">([^<]+)</.exec(ekipSirali.govde)?.[1] ?? '';
   sonuc('sıralama genel sayfaya yansıdı', ilkIsim === 'SINAMA KISISI', ilkIsim);
+
+  // --- Şubeler ---
+  await subeleriSina();
 
   // --- Görsel yükleme ---
   console.log('\nGörsel yükleme');
