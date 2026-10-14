@@ -5,3 +5,6 @@ node_modules/
 
 # Not: js/ altındaki derlenmiş dosyalar repoya dahildir.
 # Cloudflare Pages derleme çalıştırmaz, dosyaları olduğu gibi sunar.
+
+# Yerel sunucunun (server/main.ts) veri tabanı ve medya dizini
+.veri/

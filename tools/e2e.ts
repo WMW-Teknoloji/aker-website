@@ -188,6 +188,43 @@ async function subeleriSina(): Promise<void> {
   sonuc('firma adresi yeniden merkez şube', merkezSon?.address?.streetAddress?.startsWith('Osman Yılmaz') === true);
 }
 
+async function kvkkSina(): Promise<void> {
+  console.log('\nKVKK metni');
+  const JSON_BASLIK = { 'Content-Type': 'application/json' };
+  const kvkkParagrafi = /<p>[\s\S]*?<\/p>/g;
+  const metinBolgesi = (html: string): string =>
+    /<!-- kvkk-metin:start -->([\s\S]*?)<!-- kvkk-metin:end -->/.exec(html)?.[1] ?? '';
+
+  const ilk = await iste('/api/admin/metinler/kvkk');
+  const eskiMetin = String(ilk.json['metin'] ?? '');
+  sonuc('KVKK metni okunuyor', ilk.status === 200 && eskiMetin.includes('KVKK'), String(ilk.status));
+
+  const bilinmeyen = await iste('/api/admin/metinler/yok');
+  sonuc('bilinmeyen metin anahtarı 404', bilinmeyen.status === 404, String(bilinmeyen.status));
+
+  const bos = await iste('/api/admin/metinler/kvkk', { method: 'PUT', headers: JSON_BASLIK, body: JSON.stringify({ metin: '  \n ' }) });
+  sonuc('boş KVKK metni 422', bos.status === 422, String(bos.status));
+
+  const yeniMetin = 'SINAMA KVKK BASLIGI\r\n\r\nBirinci paragraf.\r\nAyni paragrafta ikinci satir.\n\n\nUcuncu <script>alert(1)</script> & "tirnak"';
+  const kaydet = await iste('/api/admin/metinler/kvkk', { method: 'PUT', headers: JSON_BASLIK, body: JSON.stringify({ metin: yeniMetin }) });
+  sonuc('KVKK metni kaydedildi', kaydet.status === 200, String(kaydet.status));
+
+  const okunan = await iste('/api/admin/metinler/kvkk');
+  sonuc('kayıt tarihi döndü', typeof okunan.json['guncellendi'] === 'string');
+  sonuc('satır sonları normalize edildi', !String(okunan.json['metin']).includes('\r'));
+
+  const sayfa = await iste('/kvkk');
+  const bolge = metinBolgesi(sayfa.govde);
+  sonuc('KVKK sayfası yeni metni gösteriyor', bolge.includes('SINAMA KVKK BASLIGI') && !bolge.includes('GİZLİLİK VE KVKK SÖZLEŞMESİ'));
+  sonuc('KVKK sayfasında 3 paragraf', sayac(bolge, kvkkParagrafi) === 3, String(sayac(bolge, kvkkParagrafi)));
+  sonuc('tek satır sonu <br> oldu', bolge.includes('Birinci paragraf.<br>Ayni paragrafta ikinci satir.'));
+  sonuc('HTML kaçışlandı', !bolge.includes('<script>') && bolge.includes('&lt;script&gt;') && bolge.includes('&amp; &quot;tirnak&quot;'));
+
+  const geri = await iste('/api/admin/metinler/kvkk', { method: 'PUT', headers: JSON_BASLIK, body: JSON.stringify({ metin: eskiMetin }) });
+  const sayfaSon = await iste('/kvkk');
+  sonuc('KVKK metni geri yüklendi', geri.status === 200 && metinBolgesi(sayfaSon.govde).includes('GİZLİLİK VE KVKK SÖZLEŞMESİ'));
+}
+
 async function calistir(): Promise<void> {
   console.log(`\nSunucu: ${KOK}\n`);
 
@@ -295,6 +332,9 @@ async function calistir(): Promise<void> {
 
   // --- Şubeler ---
   await subeleriSina();
+
+  // --- KVKK metni ---
+  await kvkkSina();
 
   // --- Görsel yükleme ---
   console.log('\nGörsel yükleme');

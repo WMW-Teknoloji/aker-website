@@ -43,6 +43,8 @@
     guncelle: (koleksiyon, id, kayit) => jsonIstek(`/api/admin/${koleksiyon}/${encodeURIComponent(id)}`, "PUT", kayit),
     sil: (koleksiyon, id) => istek(`/api/admin/${koleksiyon}/${encodeURIComponent(id)}`, { method: "DELETE" }),
     sirala: (koleksiyon, sira) => jsonIstek(`/api/admin/${koleksiyon}/sira`, "POST", { sira }),
+    metinGetir: (anahtar) => istek(`/api/admin/metinler/${encodeURIComponent(anahtar)}`),
+    metinKaydet: (anahtar, metin) => jsonIstek(`/api/admin/metinler/${encodeURIComponent(anahtar)}`, "PUT", { metin }),
     gorselYukle: async (dosya) => {
       const form = new FormData();
       form.append("file", dosya);
@@ -167,6 +169,13 @@
       ]
     }
   };
+  var METIN_BOLUMLERI = {
+    kvkk: {
+      label: "KVKK Metni",
+      aciklama: 'Bu metin Gizlilik ve KVKK sayfasında (/kvkk) görünür; formlardaki "KVKK Metni" bağlantıları da bu sayfaya gider. Paragrafların arasına bir boş satır bırakın; tek satır sonu satırı alta indirir. HTML etiketleri işlenmez, olduğu gibi yazı olarak görünür.',
+      sayfa: "/kvkk"
+    }
+  };
   var ORDER_UP_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"></polyline></svg>';
   var ORDER_DOWN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
   var state = {
@@ -175,10 +184,15 @@
     kayitlar: [],
     basvurular: [],
     mesajlar: [],
-    aboneler: []
+    aboneler: [],
+    metinDegisti: false
   };
+  var KAYDEDILMEMIS_UYARI = "Kaydedilmemiş değişiklikler var. Kaydetmeden çıkılsın mı?";
   document.addEventListener("DOMContentLoaded", () => {
     void baslat();
+  });
+  window.addEventListener("beforeunload", (event) => {
+    if (state.metinDegisti) event.preventDefault();
   });
   async function baslat() {
     initLogin();
@@ -253,6 +267,8 @@
     for (const btn of buttons) {
       btn.addEventListener("click", () => {
         var _a;
+        if (state.metinDegisti && !window.confirm(KAYDEDILMEMIS_UYARI)) return;
+        state.metinDegisti = false;
         for (const other of buttons) other.classList.remove("active");
         btn.classList.add("active");
         state.section = (_a = btn.dataset["section"]) != null ? _a : "slides";
@@ -291,6 +307,14 @@
         renderSubscribers(content);
         return;
       }
+      const metinBolumu = METIN_BOLUMLERI[state.section];
+      if (metinBolumu) {
+        titleEl.textContent = metinBolumu.label;
+        addBtn.style.display = "none";
+        const kayit = await api.metinGetir(state.section);
+        renderMetinDuzenleyici(content, state.section, metinBolumu, kayit);
+        return;
+      }
       const config = COLLECTIONS[state.section];
       if (!config) return;
       titleEl.textContent = config.label;
@@ -301,6 +325,46 @@
     } catch (err) {
       hatayiIsle(err);
     }
+  }
+  function renderMetinDuzenleyici(content, anahtar, bolum, kayit) {
+    const durumMetni = (guncellendi) => guncellendi ? `Son kaydedilme: ${formatDate(guncellendi)}` : "Henüz panelden kaydedilmedi; sitede varsayılan metin görünüyor.";
+    content.innerHTML = `<p class="admin-section-note">${escapeHtml(bolum.aciklama)}</p><div class="admin-record-count"><span id="metin-son-kayit">${escapeHtml(durumMetni(kayit.guncellendi))}</span> &nbsp;·&nbsp; <a class="admin-cv-link" href="${escapeAttr(bolum.sayfa)}" target="_blank" rel="noopener">Sayfayı görüntüle</a></div><div class="admin-field"><label for="metin-alani">Metin</label><textarea id="metin-alani" class="admin-metin-alani">${escapeHtml(kayit.metin)}</textarea></div><div class="admin-metin-eylem"><span class="admin-metin-durum" id="metin-durum" role="status"></span><button type="button" class="admin-btn-primary" id="metin-kaydet">Kaydet</button></div>`;
+    const alan = byId("metin-alani");
+    const kaydet = byId("metin-kaydet");
+    const durum = byId("metin-durum");
+    const sonKayit = byId("metin-son-kayit");
+    if (!alan || !kaydet || !durum) return;
+    const durumYaz = (mesaj, hata = false) => {
+      durum.textContent = mesaj;
+      durum.classList.toggle("hata", hata);
+    };
+    state.metinDegisti = false;
+    alan.addEventListener("input", () => {
+      state.metinDegisti = true;
+      durumYaz("Kaydedilmemiş değişiklikler var.");
+    });
+    kaydet.addEventListener("click", () => {
+      if (alan.value.trim() === "") {
+        durumYaz("Metin boş bırakılamaz.", true);
+        alan.focus();
+        return;
+      }
+      kaydet.disabled = true;
+      durumYaz("Kaydediliyor…");
+      api.metinKaydet(anahtar, alan.value).then(() => {
+        state.metinDegisti = false;
+        durumYaz("Kaydedildi; sitede yayında.");
+        if (sonKayit) sonKayit.textContent = durumMetni((/* @__PURE__ */ new Date()).toISOString());
+      }).catch((err) => {
+        if (err instanceof ApiError && err.status === 401) {
+          durumYaz("Oturumunuz sona erdi. Metni kopyalayın, sayfayı yenileyip tekrar giriş yapın.", true);
+          return;
+        }
+        durumYaz(err instanceof Error ? err.message : "Kaydedilemedi.", true);
+      }).finally(() => {
+        kaydet.disabled = false;
+      });
+    });
   }
   function renderTable(content, config) {
     const items = state.kayitlar;

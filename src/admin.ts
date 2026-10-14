@@ -154,6 +154,24 @@ const COLLECTIONS: Record<string, CollectionConfig> = {
   },
 };
 
+/** Tek bir uzun metinden oluşan sayfalar (liste değil, tek düzenleme alanı). */
+interface MetinBolumu {
+  label: string;
+  aciklama: string;
+  /** Metnin göründüğü genel sayfa. */
+  sayfa: string;
+}
+
+const METIN_BOLUMLERI: Record<string, MetinBolumu> = {
+  kvkk: {
+    label: 'KVKK Metni',
+    aciklama:
+      'Bu metin Gizlilik ve KVKK sayfasında (/kvkk) görünür; formlardaki "KVKK Metni" bağlantıları da bu sayfaya gider. ' +
+      'Paragrafların arasına bir boş satır bırakın; tek satır sonu satırı alta indirir. HTML etiketleri işlenmez, olduğu gibi yazı olarak görünür.',
+    sayfa: '/kvkk',
+  },
+};
+
 const ORDER_UP_SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 15 12 9 18 15"></polyline></svg>';
 const ORDER_DOWN_SVG =
@@ -181,6 +199,8 @@ const state: {
   basvurular: Basvuru[];
   mesajlar: Mesaj[];
   aboneler: Abone[];
+  /** Metin düzenleyicide kaydedilmemiş değişiklik var mı? */
+  metinDegisti: boolean;
 } = {
   section: 'slides',
   editingId: null,
@@ -188,10 +208,17 @@ const state: {
   basvurular: [],
   mesajlar: [],
   aboneler: [],
+  metinDegisti: false,
 };
+
+const KAYDEDILMEMIS_UYARI = 'Kaydedilmemiş değişiklikler var. Kaydetmeden çıkılsın mı?';
 
 document.addEventListener('DOMContentLoaded', () => {
   void baslat();
+});
+
+window.addEventListener('beforeunload', (event) => {
+  if (state.metinDegisti) event.preventDefault();
 });
 
 async function baslat(): Promise<void> {
@@ -283,6 +310,8 @@ function initNav(): void {
   const buttons = qsa<HTMLButtonElement>('.admin-nav-btn');
   for (const btn of buttons) {
     btn.addEventListener('click', () => {
+      if (state.metinDegisti && !window.confirm(KAYDEDILMEMIS_UYARI)) return;
+      state.metinDegisti = false;
       for (const other of buttons) other.classList.remove('active');
       btn.classList.add('active');
       state.section = btn.dataset['section'] ?? 'slides';
@@ -330,6 +359,15 @@ async function renderSection(): Promise<void> {
       return;
     }
 
+    const metinBolumu = METIN_BOLUMLERI[state.section];
+    if (metinBolumu) {
+      titleEl.textContent = metinBolumu.label;
+      addBtn.style.display = 'none';
+      const kayit = await api.metinGetir(state.section);
+      renderMetinDuzenleyici(content, state.section, metinBolumu, kayit);
+      return;
+    }
+
     const config = COLLECTIONS[state.section];
     if (!config) return;
 
@@ -342,6 +380,82 @@ async function renderSection(): Promise<void> {
   } catch (err) {
     hatayiIsle(err);
   }
+}
+
+// ---------------------------------------------------------
+// Düz metin sayfaları (KVKK)
+// ---------------------------------------------------------
+function renderMetinDuzenleyici(
+  content: HTMLElement,
+  anahtar: string,
+  bolum: MetinBolumu,
+  kayit: { metin: string; guncellendi: string | null },
+): void {
+  const durumMetni = (guncellendi: string | null): string =>
+    guncellendi
+      ? `Son kaydedilme: ${formatDate(guncellendi)}`
+      : 'Henüz panelden kaydedilmedi; sitede varsayılan metin görünüyor.';
+
+  content.innerHTML =
+    `<p class="admin-section-note">${escapeHtml(bolum.aciklama)}</p>` +
+    '<div class="admin-record-count">' +
+    `<span id="metin-son-kayit">${escapeHtml(durumMetni(kayit.guncellendi))}</span>` +
+    ` &nbsp;·&nbsp; <a class="admin-cv-link" href="${escapeAttr(bolum.sayfa)}" target="_blank" rel="noopener">Sayfayı görüntüle</a>` +
+    '</div>' +
+    '<div class="admin-field">' +
+    '<label for="metin-alani">Metin</label>' +
+    `<textarea id="metin-alani" class="admin-metin-alani">${escapeHtml(kayit.metin)}</textarea>` +
+    '</div>' +
+    '<div class="admin-metin-eylem">' +
+    '<span class="admin-metin-durum" id="metin-durum" role="status"></span>' +
+    '<button type="button" class="admin-btn-primary" id="metin-kaydet">Kaydet</button>' +
+    '</div>';
+
+  const alan = byId<HTMLTextAreaElement>('metin-alani');
+  const kaydet = byId<HTMLButtonElement>('metin-kaydet');
+  const durum = byId('metin-durum');
+  const sonKayit = byId('metin-son-kayit');
+  if (!alan || !kaydet || !durum) return;
+
+  const durumYaz = (mesaj: string, hata = false): void => {
+    durum.textContent = mesaj;
+    durum.classList.toggle('hata', hata);
+  };
+
+  state.metinDegisti = false;
+  alan.addEventListener('input', () => {
+    state.metinDegisti = true;
+    durumYaz('Kaydedilmemiş değişiklikler var.');
+  });
+
+  kaydet.addEventListener('click', () => {
+    if (alan.value.trim() === '') {
+      durumYaz('Metin boş bırakılamaz.', true);
+      alan.focus();
+      return;
+    }
+
+    kaydet.disabled = true;
+    durumYaz('Kaydediliyor…');
+    api
+      .metinKaydet(anahtar, alan.value)
+      .then(() => {
+        state.metinDegisti = false;
+        durumYaz('Kaydedildi; sitede yayında.');
+        if (sonKayit) sonKayit.textContent = durumMetni(new Date().toISOString());
+      })
+      .catch((err: unknown) => {
+        // Oturum düştüyse giriş ekranına geçilmez; yazılan metin kaybolmasın.
+        if (err instanceof ApiError && err.status === 401) {
+          durumYaz('Oturumunuz sona erdi. Metni kopyalayın, sayfayı yenileyip tekrar giriş yapın.', true);
+          return;
+        }
+        durumYaz(err instanceof Error ? err.message : 'Kaydedilemedi.', true);
+      })
+      .finally(() => {
+        kaydet.disabled = false;
+      });
+  });
 }
 
 function renderTable(content: HTMLElement, config: CollectionConfig): void {

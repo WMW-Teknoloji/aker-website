@@ -72,6 +72,12 @@ export const api = {
   sirala: (koleksiyon: string, sira: string[]): Promise<{ ok: boolean }> =>
     jsonIstek(`/api/admin/${koleksiyon}/sira`, 'POST', { sira }),
 
+  metinGetir: (anahtar: string): Promise<{ metin: string; guncellendi: string | null }> =>
+    istek(`/api/admin/metinler/${encodeURIComponent(anahtar)}`),
+
+  metinKaydet: (anahtar: string, metin: string): Promise<{ ok: boolean }> =>
+    jsonIstek(`/api/admin/metinler/${encodeURIComponent(anahtar)}`, 'PUT', { metin }),
+
   gorselYukle: async (dosya: File): Promise<string> => {
     const form = new FormData();
     form.append('file', dosya);

@@ -312,3 +312,22 @@ export function renderKurumSemasi(yol: string, subeler: Branch[]): string {
   const json = JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }, null, 2).replace(/</g, '\\u003c');
   return `<script type="application/ld+json">\n${json}\n</script>`;
 }
+
+// ---------------------------------------------------------
+// Düz metin sayfaları (KVKK)
+// ---------------------------------------------------------
+
+/**
+ * Panelde düz metin olarak yazılan sayfayı paragraflara böler:
+ * boş satır yeni paragraf, tek satır sonu `<br>` olur. HTML
+ * kabul edilmez; metindeki her şey kaçışlanır.
+ */
+export function renderDuzMetin(metin: string): string {
+  return metin
+    .replace(/\r\n?/g, '\n')
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter((p) => p !== '')
+    .map((p) => `    <p>${esc(p).replace(/\n/g, '<br>')}</p>`)
+    .join('\n');
+}

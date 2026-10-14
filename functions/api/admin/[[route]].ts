@@ -9,13 +9,24 @@
 //   GET    /api/admin/applications          başvuruları listeler
 //   DELETE /api/admin/applications/<id>     başvuru siler
 //   POST   /api/admin/upload                görsel yükler (R2)
+//   GET    /api/admin/metinler/<anahtar>    düz metin sayfasını okur (ör. kvkk)
+//   PUT    /api/admin/metinler/<anahtar>    düz metin sayfasını kaydeder
 //
 // Bütün uçlar geçerli oturum çerezi ister.
 // =========================================================
 
 import { checkOrigin, json } from '../../_lib/http.ts';
 import { isAuthenticated } from '../../_lib/auth.ts';
-import { COLLECTIONS, bumpVersion, isCollection, listItems, newId } from '../../_lib/content.ts';
+import {
+  COLLECTIONS,
+  SAYFA_METINLERI,
+  bumpVersion,
+  isCollection,
+  isSayfaMetni,
+  listItems,
+  newId,
+  sayfaMetniOku,
+} from '../../_lib/content.ts';
 import { isValidId, validateItem } from '../../_lib/validate.ts';
 import { deleteObject, putImage } from '../../_lib/media.ts';
 import type { Ctx, Env } from '../../_lib/env.ts';
@@ -54,6 +65,10 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
 
   if (first === 'subscribers') {
     return subscribersRoute(request, env, parts.slice(1).join('/'));
+  }
+
+  if (first === 'metinler') {
+    return metinRoute(request, env, second);
   }
 
   if (first === 'cv') {
@@ -159,6 +174,44 @@ async function reorder(request: Request, env: Env, name: keyof typeof COLLECTION
 
   await bumpVersion(env);
   return json({ ok: true });
+}
+
+// ---------------------------------------------------------
+// Düz metin sayfaları
+// ---------------------------------------------------------
+async function metinRoute(request: Request, env: Env, anahtar: string | undefined): Promise<Response> {
+  if (!isSayfaMetni(anahtar)) return json({ error: 'Bilinmeyen metin.' }, 404);
+  const spec = SAYFA_METINLERI[anahtar]!;
+
+  if (request.method === 'GET') {
+    const kayit = await sayfaMetniOku(env, anahtar);
+    return json({
+      metin: kayit?.metin ?? spec.varsayilan,
+      guncellendi: kayit?.guncellendi ?? null,
+    });
+  }
+
+  if (request.method === 'PUT') {
+    const body = (await readJson(request)) as { metin?: unknown } | null;
+    const metin = typeof body?.metin === 'string' ? body.metin.replace(/\r\n?/g, '\n').trim() : '';
+
+    if (metin === '') return json({ error: `"${spec.label}" boş bırakılamaz.` }, 422);
+    if (metin.length > spec.max) {
+      return json({ error: `"${spec.label}" en fazla ${spec.max.toLocaleString('tr-TR')} karakter olabilir.` }, 422);
+    }
+
+    await env.DB.prepare(
+      `INSERT INTO page_texts (anahtar, metin, guncellendi) VALUES (?, ?, datetime('now'))
+       ON CONFLICT (anahtar) DO UPDATE SET metin = excluded.metin, guncellendi = excluded.guncellendi`,
+    )
+      .bind(anahtar, metin)
+      .run();
+
+    await bumpVersion(env);
+    return json({ ok: true });
+  }
+
+  return json({ error: 'method' }, 405);
 }
 
 // ---------------------------------------------------------

@@ -8,6 +8,7 @@
 
 import type { Env } from './env.ts';
 import type { CmsData } from '../../src/content-types.ts';
+import { KVKK_VARSAYILAN } from '../../src/kvkk-metni.ts';
 
 export type CollectionName = keyof CmsData;
 
@@ -134,6 +135,37 @@ export async function loadAll(env: Env): Promise<CmsData> {
     team: satirlar<CmsData['team'][number]>(5),
     branches: satirlar<CmsData['branches'][number]>(6),
   };
+}
+
+// ---------------------------------------------------------
+// Düz metin sayfaları
+// ---------------------------------------------------------
+
+export interface SayfaMetniSpec {
+  label: string;
+  /** Panelden hiç kaydedilmemişse gösterilen metin. */
+  varsayilan: string;
+  /** Kabul edilen en fazla karakter sayısı. */
+  max: number;
+}
+
+/** Panelden düzenlenebilen metinler; API yalnızca bu anahtarları kabul eder. */
+export const SAYFA_METINLERI: Record<string, SayfaMetniSpec> = {
+  kvkk: { label: 'KVKK Metni', varsayilan: KVKK_VARSAYILAN, max: 200_000 },
+};
+
+export function isSayfaMetni(value: string | undefined): value is string {
+  return value !== undefined && Object.prototype.hasOwnProperty.call(SAYFA_METINLERI, value);
+}
+
+/** Kayıtlı metni döner; panelden hiç kaydedilmemişse null. */
+export async function sayfaMetniOku(
+  env: Env,
+  anahtar: string,
+): Promise<{ metin: string; guncellendi: string } | null> {
+  return env.DB.prepare('SELECT metin, guncellendi FROM page_texts WHERE anahtar = ?')
+    .bind(anahtar)
+    .first<{ metin: string; guncellendi: string }>();
 }
 
 /** İçerik sürümü; önbellek anahtarı olarak kullanılır. */

@@ -1,14 +1,16 @@
 // =========================================================
 // AKER OSGB - Gizlilik ve KVKK metni
 // =========================================================
-// /kvkk sayfasının içeriği. Daha önce her sayfada açılan bir
-// kutucuk içinde tekrarlanıyordu; tek sayfaya taşındı.
+// /kvkk sayfasının varsayılan içeriği. Metin yönetim panelinden
+// (KVKK Metni) değiştirilir ve veri tabanında saklanır; panelden
+// hiç kaydedilmemişse ya da veri tabanına ulaşılamazsa bu metin
+// görünür.
 //
 // UYARI: Bu metin firma-firma gizlilik sözleşmesidir; web sitesi
 // ziyaretçileri için ayrı bir aydınlatma metni hazırlanmalıdır.
 // =========================================================
 
-export const KVKK_PARAGRAFLARI: string[] = [
+const KVKK_PARAGRAFLARI: string[] = [
   "GİZLİLİK VE KVKK SÖZLEŞMESİ",
   "Bir tarafta SULTAN ORHAN MAH.İLYASBEY CAD. NO:30/B GEBZE –KOCAELİ adresinde mukim AKER ORTAK SAĞLIK GÜVENLİK BİRİMİ DNŞ. ÖZEL SAĞLIK HİZ.TİC.LTD.ŞTİ.(Bundan böyle kısaca  \"AKER OSGB \" diye anılacaktır) ile diğer tarafta …………….adresinde mukim …………… (Bundan böyle \"FİRMA\" diye anılacaktır) arasında, aşağıdaki hüküm ve şartlarda işbu Gizlilik Sözleşmesi (bundan böyle \"Sözleşme\" olarak anılacaktır) akdedilmiştir. AKER OSGB ve FİRMA; birlikte \"Taraflar\"; ayrı ayrı \"Taraf\" olarak anılacaktır.",
   "TANIMLAR\nİşbu Sözleşme'de geçen tanımlamalar ve kısaltmalar aşağıda yer alan anlamalara gelecektir.\n\"Sözleşme\" Taraflar arasında akdedilen gizli bilgilerin ifşa edilmemesi yönündeki işbu Gizlilik Sözleşmesi'ni,\n\"Gizli Bilgi\" İşbu Sözleşme'nin ikinci maddesinde sayıldığı şekilde, en geniş anlamda Taraflarca ve Tarafların çalışanları ile paylaşılan bilgi, belge, evrak ve sair tüm bilgileri,\n\"Gizli Bilgi'yi Alan Taraf\" İşbu Sözleşme ve/veya başka bir sözleşme ve müzakereleri ve/veya herhangi bir iş ilişkisi kapsamında AKER OSGB'den herhangi bir şekilde Gizli Bilgi'yi alan FİRMA'yı,\n\"Anonim Hale Getirme\" Kişisel verilerin, başka verilerle eşleştirilerek dahi hiçbir surette kimliği belirli veya belirlenebilir bir gerçek kişiyle gerçek kişiyle ilişkilendirilemeyecek hale getirilmesini,\n\"İlgili Kişi\" Kişisel verisi işlenen gerçek kişiyi,\n\"Kişisel Verilerin İşlenmesi veya İşleme\" Kişisel verilerin tamamen veya otomatik olan ya da herhangi bir veri kayıt sisteminin parçası olmak kaydıyla otomatik olmayan yollarla elde edilmesi, kaydedilmesi, depolanması, muhafaza edilmesi, değiştirilmesi, yeniden düzenlenmesi, açıklanması, aktarılması, devralınması, elde edilebilir hale getirilmesi, sınıflandırılması ya da kullanımının engellenmesi gibi veriler üzerinde gerçekleştirilen her türlü işlemi,\n\"Kişisel Veri\" veya \"Veri\" Kimliği belirli veya belirlenebilir gerçek kişiye ilişkin her türlü bilgiyi,\n\"Kişisel Verilerin Silinmesi\" Kişisel verilerin ilgili kişiler için hiçbir şekilde erişilemez ve tekrar kullanılamaz hale getirilmesi işlemini,\n\"Kişisel Verilerin Yok Edilmesi\" Kişisel verilerin hiç kimse tarafından hiçbir şekilde erişilemez, geri getirilemez ve tekrar kullanılamaz hale getirilmesi işlemini,\n\"KVKK\" 6698 sayılı Kişisel Verilerin Korunması Kanunu,\n\"Veri Kayıt Sistemi\" Kişisel verilerin belirli kriterlere göre yapılandırılarak işlendiği kayıt sistemini\nifade eder.",
@@ -29,3 +31,6 @@ export const KVKK_PARAGRAFLARI: string[] = [
   "8 (sekiz) maddeden oluşan ve 1 (bir) nüsha olarak tanzim edilen iş bu Sözleşme, taraflarca tüm hüküm ve şartları kabul edilerek ..……./......../20..… tarihinde imzalanarak yürürlüğe girmiştir.",
   "AKER OSGB     FİRMA",
 ];
+
+/** Panelde düzenlenen biçim: paragraflar arasında bir boş satır. */
+export const KVKK_VARSAYILAN = KVKK_PARAGRAFLARI.join('\n\n');

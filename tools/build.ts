@@ -19,7 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { SITE, BRANCHES, NAV, FOOTER_LINKS } from './site.ts';
 import { SERVICES, type FaqEntry, type Service } from './content/hizmetler.ts';
 import { PAGES, type ContentBlock } from './content/sayfalar.ts';
-import { KVKK_PARAGRAFLARI } from './content/kvkk.ts';
+import { KVKK_VARSAYILAN } from '../src/kvkk-metni.ts';
 import { DEFAULT_DATA } from '../src/cms-data.ts';
 import {
   renderBranchCards,
@@ -28,6 +28,7 @@ import {
   renderClients,
   renderContactLocations,
   renderDocuments,
+  renderDuzMetin,
   renderFooterBranches,
   renderJobDetail,
   renderKurumSemasi,
@@ -683,11 +684,10 @@ for (const p of PAGES) {
   generated.push({ page, html: renderPage(page, body) });
 }
 
-// KVKK sayfası - metin index.html içindeki mevcut sözleşmeden alınır
+// KVKK sayfası - metin panelden değiştirilir; burada basılan varsayılan
+// metin, panelden kayıt yoksa ya da veri tabanına ulaşılamazsa görünür.
 {
-  const paragraphs = KVKK_PARAGRAFLARI.map(
-    (t) => `    <p>${esc(t).replace(/\n/g, '<br>')}</p>`,
-  ).join('\n');
+  const paragraphs = `    <!-- kvkk-metin:start -->\n${renderDuzMetin(KVKK_VARSAYILAN)}\n    <!-- kvkk-metin:end -->`;
 
   const page = {
     path: '/kvkk',

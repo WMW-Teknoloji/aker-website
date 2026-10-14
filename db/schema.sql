@@ -77,6 +77,14 @@ CREATE TABLE IF NOT EXISTS branches (
   guncellendi  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- Panelden düzenlenen düz metin sayfaları (ör. anahtar 'kvkk').
+-- Kayıt yoksa sayfa derleme anındaki varsayılan metni gösterir.
+CREATE TABLE IF NOT EXISTS page_texts (
+  anahtar      TEXT PRIMARY KEY,
+  metin        TEXT NOT NULL,
+  guncellendi  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- İş başvuruları. Özgeçmiş dosyası R2'de saklanır, burada yalnızca
 -- anahtarı tutulur.
 CREATE TABLE IF NOT EXISTS applications (

@@ -384,6 +384,34 @@ body.admin-body {
   max-width: 760px;
 }
 
+/* Uzun metin düzenleyici (KVKK) */
+.admin-field textarea.admin-metin-alani {
+  min-height: 60vh;
+  line-height: 1.55;
+}
+
+.admin-metin-eylem {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.admin-metin-eylem .admin-btn-primary {
+  width: auto;
+  min-width: 140px;
+  margin-top: 0;
+}
+
+.admin-metin-durum {
+  font-size: 14px;
+  color: rgba(9, 23, 71, 0.7);
+}
+
+.admin-metin-durum.hata {
+  color: #c62828;
+}
+
 .admin-field-ipucu {
   font-size: 12px;
   line-height: 1.4;

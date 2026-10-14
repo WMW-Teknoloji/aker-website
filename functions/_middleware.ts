@@ -14,7 +14,7 @@
 // derleme anındaki içerikle servis edilir, site asla boş kalmaz.
 // =========================================================
 
-import { loadAll, contentVersion } from './_lib/content.ts';
+import { loadAll, contentVersion, sayfaMetniOku } from './_lib/content.ts';
 import {
   renderBranchCards,
   renderCareerCards,
@@ -22,6 +22,7 @@ import {
   renderClients,
   renderContactLocations,
   renderDocuments,
+  renderDuzMetin,
   renderFooterBranches,
   renderJobDetail,
   renderKurumSemasi,
@@ -46,7 +47,8 @@ type Bolge =
   | 'sube-alt'
   | 'sube-kart'
   | 'sube-iletisim'
-  | 'kurum-sema';
+  | 'kurum-sema'
+  | 'kvkk-metin';
 
 /** Hangi sayfada hangi bölgelerin doldurulacağı. */
 const SAYFA_BOLGELERI: Record<string, Bolge[]> = {
@@ -55,6 +57,7 @@ const SAYFA_BOLGELERI: Record<string, Bolge[]> = {
   '/ekibimiz': ['ekip'],
   '/belgelerimiz': ['belgeler'],
   '/isbasvuru': ['ilan-detay'],
+  '/kvkk': ['kvkk-metin'],
 };
 
 /**
@@ -73,7 +76,18 @@ function normalizeYol(pathname: string): string {
   return temiz.length > 1 && temiz.endsWith('/') ? temiz.slice(0, -1) : temiz;
 }
 
-function icerikUret(bolge: Bolge, data: CmsData, careerId: string | null, yol: string): string | null {
+/** Panelden düzenlenen düz metinler; kayıt yoksa null (derleme anındaki metin kalır). */
+interface Metinler {
+  kvkk: string | null;
+}
+
+function icerikUret(
+  bolge: Bolge,
+  data: CmsData,
+  careerId: string | null,
+  yol: string,
+  metinler: Metinler,
+): string | null {
   // Şube tablosu boşsa (henüz tohumlanmamış) derleme anındaki liste kalır.
   if (bolge.startsWith('sube-') || bolge === 'kurum-sema') {
     if (data.branches.length === 0) return null;
@@ -112,6 +126,8 @@ function icerikUret(bolge: Bolge, data: CmsData, careerId: string | null, yol: s
       return renderContactLocations(data.branches);
     case 'kurum-sema':
       return renderKurumSemasi(yol, data.branches);
+    case 'kvkk-metin':
+      return metinler.kvkk === null ? null : renderDuzMetin(metinler.kvkk);
     default:
       return null;
   }
@@ -172,10 +188,13 @@ export const onRequest = async (ctx: Ctx): Promise<Response> => {
     if (kayitli) return kayitli;
 
     const data = await loadAll(env);
+    const metinler: Metinler = {
+      kvkk: bolgeler.includes('kvkk-metin') ? ((await sayfaMetniOku(env, 'kvkk'))?.metin ?? null) : null,
+    };
     let html = await response.text();
 
     for (const bolge of bolgeler) {
-      const icerik = icerikUret(bolge, data, careerId, yol);
+      const icerik = icerikUret(bolge, data, careerId, yol, metinler);
       if (icerik !== null) html = bolgeyiDegistir(html, bolge, icerik);
     }
 
